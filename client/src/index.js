@@ -1,5 +1,10 @@
 import Phaser from 'phaser';
 import InGameScene from './scenes/InGame';
+import generateMeaningfulUniqueName from './utils/generate-meaningful-unique-name';
+
+if (!localStorage.getItem('_name')) {
+    localStorage.setItem('_name', generateMeaningfulUniqueName())
+}
 
 const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -9,7 +14,7 @@ const game = new Phaser.Game({
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            debug: false
+            debug: true
         }
     },
     scene: [
