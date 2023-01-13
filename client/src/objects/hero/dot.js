@@ -1,8 +1,9 @@
 
 export default class DotHero {
-    constructor(scene, { x = 100, y = 100 } = {}) {
+    constructor(scene, { x = 100, y = 100, angle = 0 } = {}) {
         this.scene = scene;
         this.circle = this.scene.physics.add.image(x, y, 'hero');
+        this.circle.angle = angle;
         this.circle.setCircle(25);
         this.circle.setBounce(0.2);
         this.circle.setCollideWorldBounds(true);
@@ -10,7 +11,7 @@ export default class DotHero {
 
         this.angular_speed = 0.1;
         this.linear_speed = 250;
-        this.dash_power = 500;
+        this.dash_power = 900;
         this.dash = 0;
         this.is_dashing = false;
 
@@ -39,7 +40,7 @@ export default class DotHero {
 
         // decrease dash speed
         if (this.dash > 0) {
-            this.dash -= 25
+            this.dash -= this.dash_power / 20;
         }
 
         // reset dash flag
@@ -59,11 +60,21 @@ export class DotHeroStatic {
         this.name = name;
         this.circle = this.scene.physics.add.image(x, y, 'hero');
         this.circle.setCircle(25);
-        this.circle.setBounce(0.2);
-        this.circle.setCollideWorldBounds(true);
+
+        const [fname, lname] = this.name.split('-')
+        this.label = this.scene.add.text(this.circle.x, this.circle.y, `${fname}\n${lname}`, { font: '12px', fill: '#00ff00' }).setAlign('center')
+        // this.label.setScrollFactor(0);
+        // this.scene.cameras.main.startFollow(this.circle, true, 0.5, 0.5);
+        
+    }
+
+    update() {
+        this.label.x = this.circle.x - (this.label.width / 2)
+        this.label.y = this.circle.y - this.circle.height - this.label.height
     }
 
     destroy() {
         this.circle.destroy()
+        this.label.destroy()
     }
 }
