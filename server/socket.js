@@ -3,15 +3,18 @@ const Room = require("./room");
 module.exports = io => {
 
   let rooms = {}
+  // const getRooms = () => Object.values(rooms).map(room => room.getInfo())
+
+  const roomIO = io.of('/room')
 
   // Listen for new connections
-  io.on('connection', (socket) => {
+  roomIO.on('connection', (socket) => {
     console.log('A new player has connected!', socket.handshake.query);
     const { name, room: room_name } = socket.handshake.query
 
     // get room or create
     if (!rooms[room_name]) {
-      rooms[room_name] = new Room(room_name, { io })
+      rooms[room_name] = new Room(room_name, { io, roomIO })
     }
     const room = rooms[room_name]
     room.join(name)
@@ -33,8 +36,8 @@ module.exports = io => {
 
     // Listen for a "disconnect" event
     socket.on('disconnect', () => {
-      room.leave(name)
       console.log('A player has disconnected!', socket.handshake.query);
+      room.leave(name)
     });
   });
 

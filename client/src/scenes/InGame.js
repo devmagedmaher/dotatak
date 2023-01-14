@@ -71,10 +71,11 @@ export default class InGameScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.socket = data.socket;
     this.myName = data.myName;
+    this.room = data.room;
     this.init_players = data.init_players
-
+    this.socket = data.socket;
+    
     // setting maps
     this.map = {
       size: 1000,
@@ -106,9 +107,6 @@ export default class InGameScene extends Phaser.Scene {
     // add random background
     addRandomBackgroundGeometries(this, 0.35)
 
-    // add ui group
-    this.ui = this.add.group()
-
     // set minimap
     this.minimap_camera = this.cameras.add(
       this.minimap.offset,
@@ -118,6 +116,13 @@ export default class InGameScene extends Phaser.Scene {
     ).setZoom(this.minimap.zoom)
     .setName('mini')
     .setBackgroundColor(0x002244)
+
+    // add ui group
+    this.ui = this.add.group()
+    this.ui = this.add.text(0, 0, `${this.room}`, { font: '14px', fill: '#ffffff', align: 'center' })
+    // .setOrigin(0.5, 0)
+    .setScrollFactor(0)
+    .setPosition(this.minimap.size + this.minimap.offset * 2, 10)
 
     // add hero to scene
     this.hero = new DotHero(this);

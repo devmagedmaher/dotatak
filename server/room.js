@@ -2,11 +2,12 @@
 
 module.exports = class Room {
 
-  constructor(name, { io }) {
+  constructor(name, { io, roomIO }) {
     this.name = name
     this.players = {}
 
     this.io = io
+    this.roomIO = roomIO
   }
 
   join(name) {
@@ -57,8 +58,15 @@ module.exports = class Room {
     this.broadcast('change-player-score', name, score)
   }
 
+  getInfo() {
+    return {
+      name: this.name,
+      players: Object.keys(this.players).length
+    }
+  }
+
   broadcast(...args) {
-    this.io.to(this.name).emit(...args)
+    this.roomIO.to(this.name).emit(...args)
   }
 
 }
