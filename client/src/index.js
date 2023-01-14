@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import Connect from './scenes/Connect';
 import InGameScene from './scenes/InGame';
 import generateMeaningfulUniqueName from './utils/generate-meaningful-unique-name';
 
@@ -18,6 +19,7 @@ const game = new Phaser.Game({
         }
     },
     scene: [
+        Connect,
         InGameScene
     ]
 });

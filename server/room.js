@@ -45,6 +45,8 @@ module.exports = class Room {
         ...data,
       }
     }
+
+    this.broadcast('change-player-position', name, data.x, data.y)
   }
 
   broadcast(...args) {

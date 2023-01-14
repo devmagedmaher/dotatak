@@ -1,9 +1,13 @@
 
 export default class DotHero {
-    constructor(scene, { x = 100, y = 100, angle = 0 } = {}) {
+    constructor(scene) {
         this.scene = scene;
-        this.circle = this.scene.physics.add.image(x, y, 'hero');
-        this.circle.angle = angle;
+        this.circle = this.scene.physics.add.image(
+            Phaser.Math.Between(0, this.scene.map.size),
+            Phaser.Math.Between(0, this.scene.map.size),
+            'hero'
+        );
+        this.circle.angle = Phaser.Math.DegToRad(Phaser.Math.Between(0, 360));
         this.circle.setCircle(25);
         this.circle.setBounce(0.2);
         this.circle.setCollideWorldBounds(true);
@@ -14,6 +18,9 @@ export default class DotHero {
         this.dash_power = 900;
         this.dash = 0;
         this.is_dashing = false;
+
+        this.scene.camera.startFollow(this.circle, false, 1, 1);
+        this.scene.minimap.startFollow(this.circle, false, 0.2, 0.2);
 
         this.circle.setVelocity(this.linear_speed, this.linear_speed);
     }
@@ -34,9 +41,6 @@ export default class DotHero {
                 this.dash = this.dash_power;
             }
         }
-        // if (this.cursors.down.isDown) {
-        //     this.circle.angle += this.angular_speed;
-        // }
 
         // decrease dash speed
         if (this.dash > 0) {
@@ -54,21 +58,29 @@ export default class DotHero {
     }
 }
 
+
 export class DotHeroStatic {
     constructor(scene, { name, x = 100, y = 100 } = {}) {
         this.scene = scene;
         this.name = name;
+        // add circle
         this.circle = this.scene.physics.add.image(x, y, 'hero');
+        console.log('ADD CIRCLE', name)
         this.circle.setCircle(25);
+        console.log('RESIZE CIRCLE', name)
 
+        if (this.scene.myName === name) {
+            this.circle.alpha = 0;
+        }
+
+        // add label
         const [fname, lname] = this.name.split('-')
         this.label = this.scene.add.text(this.circle.x, this.circle.y, `${fname}\n${lname}`, { font: '12px', fill: '#00ff00' }).setAlign('center')
-        // this.label.setScrollFactor(0);
-        // this.scene.cameras.main.startFollow(this.circle, true, 0.5, 0.5);
-        
+        console.log('ADD LABEL', name)
     }
 
     update() {
+        // label follow circle
         this.label.x = this.circle.x - (this.label.width / 2)
         this.label.y = this.circle.y - this.circle.height - this.label.height
     }

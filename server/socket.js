@@ -22,7 +22,6 @@ module.exports = io => {
     // listen to player position change
     socket.on('player-position-changed', (x, y) => {
       room.updatePlayer(name, { x, y })
-      room.broadcast('change-player-position', name, x, y)
     })
 
     // Listen for a "disconnect" event
