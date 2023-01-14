@@ -57,7 +57,7 @@ export default class Connect extends Phaser.Scene {
 
   async preload() {
     // preload game assets
-    this.load.image('hero', heroPNG);
+    this.load.spritesheet('hero', heroPNG, { frameWidth: 100, frameHeight: 100 });
   }
 
   create() {

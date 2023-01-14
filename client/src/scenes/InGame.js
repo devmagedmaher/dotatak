@@ -1,5 +1,3 @@
-import io from 'socket.io-client';
-import heroPNG from '../assets/images/hero.png';
 import DotHero from '../objects/hero/dot';
 import DotHeroStatic from '../objects/hero/dot-static';
 import addRandomBackgroundGeometries from '../utils/add-random-background-geometries';
@@ -27,7 +25,7 @@ export default class InGameScene extends Phaser.Scene {
     this.players[name] = new DotHeroStatic(this, { name, x, y })
 
     if (name === this.myName) {
-      this.players[name].circle.alpha = 0;
+      this.players[name].sprite.alpha = 0;
     }
 
     this.updateScoreTextPositions()
@@ -43,11 +41,10 @@ export default class InGameScene extends Phaser.Scene {
     this.updateScoreTextPositions()
   }
 
-  onChangePlayerPosition(name, x, y) {
+  onChangePlayerPosition(name, data) {
     const player = this.players[name]
     if (player) {
-      player.circle.x = x;
-      player.circle.y = y;
+      player.updateState(data)
     }
   }
 
@@ -99,7 +96,7 @@ export default class InGameScene extends Phaser.Scene {
 
     // set world bounds
     this.physics.world.setBounds(0, 0, this.map.size, this.map.size);
-    this.add.rectangle(this.map.size / 2, this.map.size / 2, this.map.size, this.map.size, 0x111111)
+    this.add.rectangle(this.map.size / 2, this.map.size / 2, this.map.size, this.map.size, 0x999999)
 
     // set main camera
     this.main_camera = this.cameras.main.setBounds(0, 0, this.map.size, this.map.size).setName('main');
@@ -140,6 +137,11 @@ export default class InGameScene extends Phaser.Scene {
       this.players[player].update()
     }
 
-    this.socket.emit('player-position-changed', this.hero.circle.x, this.hero.circle.y)
+    this.socket.emit('player-position-changed', {
+      x: this.hero.sprite.x,
+      y: this.hero.sprite.y,
+      angle: this.hero.sprite.angle,
+      mode: this.hero.mode,
+    })
   }
 }

@@ -37,8 +37,8 @@ module.exports = io => {
       socket.emit('init', room.players)
   
       // listen to player position change
-      socket.on('player-position-changed', (x, y) => {
-        room.updatePlayerPosition(name, { x, y })
+      socket.on('player-position-changed', data => {
+        room.updatePlayerPosition(name, data)
       })
   
       // listen to player position change

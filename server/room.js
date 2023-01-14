@@ -51,7 +51,12 @@ module.exports = class Room {
       }
     }
 
-    this.broadcast('change-player-position', name, data.x, data.y)
+    this.broadcast('change-player-position', name, {
+      x: data.x,
+      y: data.y,
+      angle: data.angle,
+      mode: data.mode,
+    })
   }
 
   updatePlayerScore(name, score) {
