@@ -9,6 +9,7 @@ export default class DotHero {
 			2, // scissors
 		]
 		this.mode = this.modes[Math.floor(Math.random() * this.modes.length)]
+    this.alive = true
 		this.size = 50;
 		this.angularSpeed = 3.14;
 		this.linearSpeed = 250;
@@ -28,7 +29,7 @@ export default class DotHero {
 		this.sprite.setDisplaySize(this.size, this.size);
 		this.sprite.setCircle(this.sprite.width / 2);
 		this.sprite.setAngle(Phaser.Math.Between(0, 360))
-		// this.sprite.setBounce(0.2);
+		this.sprite.setBounce(1, 1);
 		this.sprite.setCollideWorldBounds(true);
 		this.cursors = this.scene.input.keyboard.createCursorKeys();
 
@@ -37,10 +38,20 @@ export default class DotHero {
 		this.scene.minimap_camera.startFollow(this.sprite, false, 0.2, 0.2);
 	}
 
-	switchMode() {
-		this.mode = this.modes.filter(e => e !== this.mode)[Math.floor(Math.random() * this.modes.length) - 1]
-		this.sprite.setTexture('hero', 1)
+	relocate() {
+		this.sprite.x = Phaser.Math.Between(0, this.scene.map.size);
+		this.sprite.y = Phaser.Math.Between(0, this.scene.map.size)		
+		this.sprite.setAngle(Phaser.Math.Between(0, 360))
 	}
+	
+	switchMode() {
+		this.mode = this.modes[Math.floor(Math.random() * this.modes.length)]
+		this.refreshTexture()
+	}
+
+	refreshTexture() {
+    this.sprite.setTexture('hero', this.mode)
+  }
 
 	update() {
 		// rotate hero left and right
@@ -56,7 +67,6 @@ export default class DotHero {
 			if (!this.isDashing) {
 				this.isDashing = true;
 				this.dash = this.dashPower;
-				// this.scene.emitIncreaseScore(1)
 			}
 		}
 

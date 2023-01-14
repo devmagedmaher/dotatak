@@ -14,47 +14,54 @@ module.exports = io => {
     try {
       console.log('A new player has connected!', socket.handshake.query);
       const { name, room: room_name } = socket.handshake.query
-  
+
       // get room or create
       if (!rooms[room_name]) {
         rooms[room_name] = new Room(room_name, { io, roomIO })
       }
       const room = rooms[room_name]
-  
+
       // check room capacity
-      console.log(name, room.getConnectedPlayers(), MAX_ROOM_PLAYERS)
       if (room.getConnectedPlayers() >= MAX_ROOM_PLAYERS) {
-        socket.emit('error', 'Room is full!')      
+        socket.emit('error', 'Room is full!')
         socket.disconnect()
         return
       }
-  
+
       // join player to room
-      room.join(name)
+      room.join(name, socket)
       socket.join(room_name)
-  
+
       // send inital data
-      socket.emit('init', room.players)
-  
+      socket.emit('init', room.getPlayers())
+
       // listen to player position change
       socket.on('player-position-changed', data => {
         room.updatePlayerPosition(name, data)
       })
-  
-      // listen to player position change
-      socket.on('player-score-increased', (name, amount) => {
-        if (room.players[name]) {
-          room.updatePlayerScore(name, room.players[name].score + amount)
+
+      // listen to player score change
+      socket.on('players-collided', ({ winner, loser }) => {
+        if (room.players[winner] && room.players[loser]?.alive) {
+          room.players[loser].alive = false
+          room.addPlayerScore(winner, 1)
+
+          room.broadcast('kill-player', loser)
+
+          setTimeout(() => {
+            room.players[loser].alive = true
+            room.broadcast('respawn-player', loser)
+          }, 5000)
         }
       })
-  
+
       // Listen for a "disconnect" event
       socket.on('disconnect', () => {
         console.log('A player has disconnected!', socket.handshake.query);
         room.leave(name)
       });
     }
-    catch(e) {
+    catch (e) {
       console.log('an error occured', socket.handshake.query, e);
       socket.emit('error', e.toString())
       socket.disconnect()

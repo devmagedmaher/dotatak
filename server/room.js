@@ -10,21 +10,23 @@ module.exports = class Room {
     this.roomIO = roomIO
   }
 
-  join(name) {
+  join(name, socket) {
     if (!this.players[name]) {
       this.players[name] = {
+        socket,
         connected: true,
         name,
         x: 0,
         y: 0,
         angle: 0,
         score: 0,
+        alive: true,
       }
     }
 
     this.players[name].connected = true
 
-    this.broadcast('add-player', this.players[name])
+    this.broadcast('add-player', this.getPlayer(name))
   }
 
   leave(name) {
@@ -32,11 +34,21 @@ module.exports = class Room {
       this.players[name].connected = false;
     }
 
-    this.broadcast('remove-player', this.players[name])
+    this.broadcast('remove-player', this.getPlayer(name))
+  }
+
+  getPlayers() {
+    const players = {}
+    for (let p in this.players) {
+      const { socket, ...data } = this.players[p]
+      players[p] = data
+    }
+    return players
   }
 
   getPlayer(name) {
-    return this.players[name]
+    const { socket, ...player } = this.players[name]
+    return player
   }
 
   getConnectedPlayers() {
@@ -59,12 +71,12 @@ module.exports = class Room {
     })
   }
 
-  updatePlayerScore(name, score) {
+  addPlayerScore(name, score) {
     if (this.players[name]) {
-      this.players[name].score = score
-    }
+      this.players[name].score += score
 
-    this.broadcast('change-player-score', name, score)
+      this.broadcast('change-player-score', name, this.players[name].score)
+    }
   }
 
   getInfo() {

@@ -9,13 +9,16 @@ export default class DotHeroStatic {
 		]
 		this.mode = mode
     this.name = name;
+    this.alive = true
     this.score = score;
 		this.size = 50;
 
     // add circle
 		this.sprite = this.scene.physics.add.image(x, y, 'hero', this.mode);
+    this.sprite.name = name;
 		this.sprite.setDisplaySize(this.size, this.size);
 		this.sprite.setCircle(this.sprite.width / 2);
+    this.scene.collidable.add(this.sprite)
 
     if (this.scene.myName === name) {
       this.sprite.alpha = 0;
@@ -23,7 +26,8 @@ export default class DotHeroStatic {
 
     // add name label
     const [fname, lname] = this.name.split('-')
-    this.label = this.scene.add.text(this.sprite.x, this.sprite.y, `${fname}\n${lname}`, { font: '12px', fill: '#00ff00', align: 'center' })
+    this.name_label = `${fname}\n${lname}`
+    this.label = this.scene.add.text(this.sprite.x, this.sprite.y, `${this.name_label}`, { font: '12px', fill: '#00ff00', align: 'center' })
 
     // add player score label
     this.score_text = this.scene.add.text(0, 0, `${this.name}: ${this.score}`, { font: '12px', fill: '#ffffff' })
@@ -42,15 +46,23 @@ export default class DotHeroStatic {
     this.label.y = this.sprite.y - this.sprite.height - this.label.height
   }
 
+  setAlive(alive) {
+    this.alive = alive
+    this.label.setText(alive ? `${this.name_label}` : `${this.name_label}\n(died)`)
+    this.sprite.setAlpha(this.scene.myName === this.name ? 0 : alive ? 1 : 0.5)
+  }
+
   updateState(data) {
     const { x, y, angle, mode } = data
     this.sprite.x = x;
     this.sprite.y = y;
     this.sprite.angle = angle;
-    if (mode && this.mode !== mode) {
-      this.mode = mode,
-      this.sprite.setTexture('hero', this.mode)
-    }
+    this.mode = mode
+    this.refreshTexture()
+  }
+
+  refreshTexture() {
+    this.sprite.setTexture('hero', this.mode)
   }
 
   updateScoreTextPosition() {

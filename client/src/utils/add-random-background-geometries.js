@@ -25,12 +25,12 @@ export default function addRandomBackgroundGeometries(scene, density = 0.5) {
     let y = Phaser.Math.RND.between(0, scene.map.size);
     if (shapeType === 'circle') {
       // Create a random circle
-      let circle = scene.add.circle(x, y, Phaser.Math.RND.between(25, 50), getRandomColor(), Phaser.Math.RND.between(0.04, 0.1));
+      let circle = scene.add.circle(x, y, Phaser.Math.RND.between(25, 50), getRandomColor(), Phaser.Math.RND.between(0.01, 0.05));
     } else if (shapeType === 'rectangle') {
       // Create a random rectangle
       let width = Phaser.Math.RND.between(50, 100);
       let height = Phaser.Math.RND.between(50, 100);
-      let rectangle = scene.add.rectangle(x, y, width, height, getRandomColor(), 0.5, Phaser.Math.RND.between(0.04, 0.1));
+      let rectangle = scene.add.rectangle(x, y, width, height, getRandomColor(), 0.5, Phaser.Math.RND.between(0.01, 0.05)).setAlpha(0.2);
     }
   }
 }
