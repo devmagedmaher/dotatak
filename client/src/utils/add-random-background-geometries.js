@@ -3,7 +3,8 @@ export default function addRandomBackgroundGeometries(scene, density = 0.5) {
   // Create a variable to store the number of shapes
   const numShapes = Math.pow(scene.map.size / 75 * density, 2);
   // Create a variable to store the possible shapes
-  const shapeTypes = ['circle', 'rectangle'];
+  // const shapeTypes = ['circle', 'rectangle'];
+  const shapeTypes = ['rectangle'];
 
   function getRandomColor() {
     let r = Phaser.Math.RND.integerInRange(0, 255).toString(16);

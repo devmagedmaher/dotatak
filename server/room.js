@@ -38,7 +38,7 @@ module.exports = class Room {
     return this.players[name]
   }
 
-  updatePlayer(name, data) {
+  updatePlayerPosition(name, data) {
     if (this.players[name]) {
       this.players[name] = {
         ...this.players[name],
@@ -47,6 +47,14 @@ module.exports = class Room {
     }
 
     this.broadcast('change-player-position', name, data.x, data.y)
+  }
+
+  updatePlayerScore(name, score) {
+    if (this.players[name]) {
+      this.players[name].score = score
+    }
+
+    this.broadcast('change-player-score', name, score)
   }
 
   broadcast(...args) {

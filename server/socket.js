@@ -21,7 +21,14 @@ module.exports = io => {
 
     // listen to player position change
     socket.on('player-position-changed', (x, y) => {
-      room.updatePlayer(name, { x, y })
+      room.updatePlayerPosition(name, { x, y })
+    })
+
+    // listen to player position change
+    socket.on('player-score-increased', (name, amount) => {
+      if (room.players[name]) {
+        room.updatePlayerScore(name, room.players[name].score + amount)
+      }
     })
 
     // Listen for a "disconnect" event
