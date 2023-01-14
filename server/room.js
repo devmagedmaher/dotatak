@@ -39,6 +39,10 @@ module.exports = class Room {
     return this.players[name]
   }
 
+  getConnectedPlayers() {
+    return Object.values(this.players).filter(p => p.connected).length
+  }
+
   updatePlayerPosition(name, data) {
     if (this.players[name]) {
       this.players[name] = {

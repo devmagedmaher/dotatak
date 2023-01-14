@@ -7,14 +7,19 @@ export default class Connect extends Phaser.Scene {
     super({ key: 'ConnectScene' });
   }
 
-  onInit(players) {
+  enterRoom(players) {
     // go to InGame scene
     this.scene.start('InGameScene', {
       myName: this.myName,
       room: this.room,
-      init_players: players,
+      init_players: this.players,
       socket: this.socket,
     })
+  }
+
+  onError(message) {
+    console.error(message)
+    this.title.setText(message || 'Something went wrong!')
   }
 
   async connectIO() {
@@ -25,9 +30,17 @@ export default class Connect extends Phaser.Scene {
           return
         }
         this.socket = io('http://localhost:8081/room', { query: { name: this.myName, room: this.room } })  
-        // listen to server events
-        this.socket.on("connect", resolve);
-        this.socket.on('init', this.onInit.bind(this))
+
+        // on init = no erros
+        this.socket.on('init', players => {
+          this.players = players
+          resolve()
+        })
+
+        // on error
+        this.socket.on('error', message => {
+          reject(new Error(message))
+        })
       }
       catch(e) {
         reject(e)
@@ -59,7 +72,7 @@ export default class Connect extends Phaser.Scene {
 
     this.connectIO()
     .then(() => {
-      this.title.setText('Loading..')
+      this.enterRoom()
     })
     .catch(e => {
       this.title.setText(e?.toString() || 'Something went wrong!')
