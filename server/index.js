@@ -25,6 +25,6 @@ const io = socketio(server, {
 require('./socket')(io)
 
 // Start the server
-server.listen(8081, () => {
-    console.log('Server listening on port 8081');
+server.listen(9001, () => {
+    console.log('Server listening on port 9001');
 });

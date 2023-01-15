@@ -1,5 +1,6 @@
 import io from 'socket.io-client';
 import heroPNG from '../assets/images/hero.png';
+import { SOCKET_IO } from '../config';
 import getRoomNameFromURL from '../utils/get-room-name-from-url';
 
 export default class Connect extends Phaser.Scene {
@@ -29,7 +30,7 @@ export default class Connect extends Phaser.Scene {
           reject(new Error('No room was specified!'))
           return
         }
-        this.socket = io('http://localhost:8081/room', { query: { name: this.myName, room: this.room } })  
+        this.socket = io(SOCKET_IO.ROOM_WORKSPACE, { query: { name: this.myName, room: this.room } })  
 
         // on init = no erros
         this.socket.on('init', players => {

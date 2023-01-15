@@ -12,8 +12,8 @@ module.exports = io => {
   // Listen for new connections
   roomIO.on('connection', (socket) => {
     try {
-      console.log('A new player has connected!', socket.handshake.query);
       const { name, room: room_name } = socket.handshake.query
+      console.log('A new player has connected!', name, room_name, socket.id);
 
       // get room or create
       if (!rooms[room_name]) {
@@ -49,15 +49,19 @@ module.exports = io => {
           room.broadcast('kill-player', loser)
 
           setTimeout(() => {
+            room.players[loser].socket.emit('change-mode')
+          }, 5000)
+        
+          setTimeout(() => {
             room.players[loser].alive = true
             room.broadcast('respawn-player', loser)
-          }, 5000)
+          }, 10000)
         }
       })
 
       // Listen for a "disconnect" event
       socket.on('disconnect', () => {
-        console.log('A player has disconnected!', socket.handshake.query);
+        console.log('A player has disconnected!', name, room_name);
         room.leave(name)
       });
     }

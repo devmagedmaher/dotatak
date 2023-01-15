@@ -1,90 +1,128 @@
+import { HERO } from "../../config";
 
-export default class DotHeroStatic {
-  constructor(scene, { name, x = 100, y = 100, mode = 0, score = 0 } = {}) {
-    this.scene = scene;
+export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
+  constructor(scene, { name, x = 0, y = 0, mode = 0, score = 0 } = {}) {
+    super(scene, x, y, HERO, mode)
+		scene.add.existing(this)
+		scene.physics.add.existing(this)
+    scene.collidable.add(this)
+
+    // static props
+    this.name = name;
+    const [fname, lname] = this.name.split('-')
+    this.name_label = `${fname}\n${lname}`
+		this.size = 50;
 		this.modes = [
 			0, // rock
 			1, // paper
 			2, // scissors
 		]
+
+    // state
 		this.mode = mode
-    this.name = name;
     this.alive = true
     this.score = score;
-		this.size = 50;
 
-    // add circle
-		this.sprite = this.scene.physics.add.image(x, y, 'hero', this.mode);
-    this.sprite.name = name;
-		this.sprite.setDisplaySize(this.size, this.size);
-		this.sprite.setCircle(this.sprite.width / 2);
-    this.scene.collidable.add(this.sprite)
+    // update sprite
+    this.updateSize(this.size)
 
-    if (this.scene.myName === name) {
-      this.sprite.alpha = 0;
+    // hide self player for self
+    if (scene.myName === name) {
+      // this.alpha = 0;
+      this.visible = false;
     }
 
-    // add name label
-    const [fname, lname] = this.name.split('-')
-    this.name_label = `${fname}\n${lname}`
-    this.label = this.scene.add.text(this.sprite.x, this.sprite.y, `${this.name_label}`, { font: '12px', fill: '#00ff00', align: 'center' })
+    // add labels
+    this.addNameText()
+    this.addScoreText()
+    scene.ui.add(this.name_text)
+    scene.ui.add(this.score_text)
+    // ignore labels in minimap
+    scene.minimapCamera.ignore(scene.ui)
 
-    // add player score label
-    this.score_text = this.scene.add.text(0, 0, `${this.name}: ${this.score}`, { font: '12px', fill: '#ffffff' })
-    this.score_text.setScrollFactor(0);
-    this.score_text.setAlign('right');
+    // set scene
+    this.scene = scene
+  }
+
+  updateSize(size) {
+    this.setDisplaySize(this.size, this.size);
+		this.setCircle(this.width / 2);
+  }
+
+  addNameText() {
+    this.name_text = this.scene.add.text(this.x, this.y, `${this.name_label}`, {
+      font: '12px',
+      fill: '#00ff00',
+      align: 'center'
+    })
+  }
+
+  updateNameText() {
+    this.name_text.setPosition(
+      this.x - (this.name_text.width / 2),
+      this.y - this.height - this.name_text.height
+    )
+    .setText(this.alive
+      ? `${this.name_label}`
+      : `${this.name_label}\n(dead)`
+    )
+  }
+
+  addScoreText() {
+    this.score_text = this.scene.add.text(0, 0, `${this.name}: ${this.score}`, {
+      font: '12px',
+      fill: '#ffffff',
+      align: 'right',
+    })
     this.score_text.setOrigin(1, 0);
+    this.score_text.setScrollFactor(0);
+    this.scene.ui.add(this.score_text)
+  }
 
-    // ignore text in minimap
-    this.scene.minimap_camera.ignore(this.score_text)
-    this.scene.minimap_camera.ignore(this.label)
+  updateScoreText() {
+    this.score_text.setPosition(
+      this.scene.mainCamera.width - 10,
+      this._getScoreTextPositionY()
+    )
+    .setText(`${this.name}: ${this.score}`)
   }
 
   update() {
-    // label follow circle
-    this.label.x = this.sprite.x - (this.label.width / 2)
-    this.label.y = this.sprite.y - this.sprite.height - this.label.height
-  }
+    // update alpha
+    this.setAlpha(this.alive ? 1 : 0.4)
 
-  setAlive(alive) {
-    this.alive = alive
-    this.label.setText(alive ? `${this.name_label}` : `${this.name_label}\n(died)`)
-    this.sprite.setAlpha(this.scene.myName === this.name ? 0 : alive ? 1 : 0.5)
+    // score text follow sprite
+    this.updateNameText()
+
+    // update score list order
+    this.updateScoreText()
   }
 
   updateState(data) {
     const { x, y, angle, mode } = data
-    this.sprite.x = x;
-    this.sprite.y = y;
-    this.sprite.angle = angle;
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
     this.mode = mode
     this.refreshTexture()
   }
 
   refreshTexture() {
-    this.sprite.setTexture('hero', this.mode)
+    this.setFrame(this.mode)
   }
 
-  updateScoreTextPosition() {
-    this.score_text.setPosition(this.scene.main_camera.width - 10, this.getScoreTextPosition())
-  }
-  
-  updateScoreText() {
-    this.score_text.setText(`${this.name}: ${this.score}`);
-  }
-
-  getOrder() {
+  _getOrder() {
     return Object.values(this.scene.players).sort((a, b) => b.score - a.score).findIndex(p => p.name === this.name)
   }
 
-  getScoreTextPosition() {
-    const order = this.getOrder()
+  _getScoreTextPositionY() {
+    const order = this._getOrder()
     return 10 + (order * 15)
   }
 
   destroy() {
-    this.sprite.destroy()
-    this.label.destroy()
-    this.score_text.destroy()
+    this.name_text?.destroy()
+    this.score_text?.destroy()
+    super.destroy()
   }
 }

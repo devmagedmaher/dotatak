@@ -1,87 +1,147 @@
+import { HERO } from "../../config";
 
-export default class DotHero {
+export default class DotHero extends Phaser.Physics.Arcade.Image {
 	constructor(scene) {
-		this.scene = scene;
-		// hero props
+		super(scene, 0, 0, HERO, 0)
+		scene.add.existing(this)
+		scene.physics.add.existing(this)
+
+		// static props
+		this.size = 50;
+		this.angularSpeed = 7;
+		this.angularFriction = 0.77;
+		this.linearSpeed = 250;
+		this.dashPower = 900;
 		this.modes = [
 			0, // rock
 			1, // paper
 			2, // scissors
 		]
-		this.mode = this.modes[Math.floor(Math.random() * this.modes.length)]
+
+		// state
+		this.mode = 0
     this.alive = true
-		this.size = 50;
-		this.angularSpeed = 3.14;
-		this.linearSpeed = 250;
-		this.dashPower = 900;
+		this.angularVelocity = 0;
 		this.dash = 0;
-		this.isDashing = false;
-		// score
+		this.dashing = false;
 		this.score = 0;
+		this.mouseLock = false;
 
-		// draw circle
-		this.sprite = this.scene.physics.add.image(
-			Phaser.Math.Between(0, this.scene.map.size),
-			Phaser.Math.Between(0, this.scene.map.size),
-			'hero',
-			this.mode
-		);
-		this.sprite.setDisplaySize(this.size, this.size);
-		this.sprite.setCircle(this.sprite.width / 2);
-		this.sprite.setAngle(Phaser.Math.Between(0, 360))
-		this.sprite.setBounce(1, 1);
-		this.sprite.setCollideWorldBounds(true);
-		this.cursors = this.scene.input.keyboard.createCursorKeys();
+		// upate sprite
+		this.setCollideWorldBounds(true);
+		this.updateSize(this.size)
+		this.goRandomMode()
+		this.goRandomPosition()
 
-		// follow circle
-		this.scene.main_camera.startFollow(this.sprite, false, 0.5, 0.5);
-		this.scene.minimap_camera.startFollow(this.sprite, false, 0.2, 0.2);
+		// set external helpers
+		this.scene = scene;
+		// handle control inputs
+		// - keyboard inputs
+		this.cursors = scene.input.keyboard.createCursorKeys();
+		// - mouse inputs
+		this.input = scene.input;
+		// - lock pointer on click
+		this.input.on('pointerdown', this.onMouseClick.bind(this));
+		document.addEventListener('pointerlockchange', this.releaseMouseControl.bind(this));
+
+		// follow sprite
+		scene.mainCamera.startFollow(this, false, 0.5, 0.5);
+		scene.minimapCamera.startFollow(this, false, 0.2, 0.2);
 	}
 
-	relocate() {
-		this.sprite.x = Phaser.Math.Between(0, this.scene.map.size);
-		this.sprite.y = Phaser.Math.Between(0, this.scene.map.size)		
-		this.sprite.setAngle(Phaser.Math.Between(0, 360))
+	updateSize(size) {
+		this.setDisplaySize(size, size);
+		this.setCircle(this.width / 2);
 	}
-	
-	switchMode() {
+
+	goRandomMode() {
 		this.mode = this.modes[Math.floor(Math.random() * this.modes.length)]
-		this.refreshTexture()
+		this.setFrame(this.mode)
 	}
 
-	refreshTexture() {
-    this.sprite.setTexture('hero', this.mode)
-  }
+	goRandomPosition() {
+		this.setAngle(Phaser.Math.Between(0, 360))
+		this.setRandomPosition(0, 0, this.scene.map.size, this.scene.map.size)
+	}
+
+	goDash() {
+		if (!this.dashing) {
+			this.dashing = true;
+			this.dash = this.dashPower;
+		}
+	}
 
 	update() {
 		// rotate hero left and right
+		// - with arrows
 		if (this.cursors.left.isDown) {
-			this.sprite.angle -= this.angularSpeed;
+			this.angularVelocity = this.angularSpeed * -1;
 		}
-		if (this.cursors.right.isDown) {
-			this.sprite.angle += this.angularSpeed;
+		else if (this.cursors.right.isDown) {
+			this.angularVelocity = this.angularSpeed;
 		}
+
+		// add friction to angular velocity
+		this.angularVelocity *= this.angularFriction;
 
 		// dash hero forward
 		if (this.cursors.up.isDown) {
-			if (!this.isDashing) {
-				this.isDashing = true;
-				this.dash = this.dashPower;
-			}
+			this.goDash()
 		}
 
-		// decrease dash speed
+		// reset dash flag on dash complete
+		if (this.cursors.up.isUp && this.dash <= 0) {
+			this.dashing = false
+		}
+
+		// add friction to dash velocity
 		if (this.dash > 0) {
 			this.dash -= this.dashPower / 20;
 		}
 
-		// reset dash flag
-		if (this.cursors.up.isUp && this.dash <= 0) {
-			this.isDashing = false
-		}
+		// update angular velocity		
+		this.angle += this.angularVelocity
+		// update linear velocity
+		this.setVelocityX(Math.cos(Phaser.Math.DegToRad(this.angle)) * (this.linearSpeed + this.dash));
+		this.setVelocityY(Math.sin(Phaser.Math.DegToRad(this.angle)) * (this.linearSpeed + this.dash));
+	}
 
-		// update linear/angular velocity
-		this.sprite.setVelocityX(Math.cos(Phaser.Math.DegToRad(this.sprite.angle)) * (this.linearSpeed + this.dash));
-		this.sprite.setVelocityY(Math.sin(Phaser.Math.DegToRad(this.sprite.angle)) * (this.linearSpeed + this.dash));
+	onMouseClick() {
+		if (!this.mouseLock) {
+			this.input.mouse.requestPointerLock();
+			return
+		}
+		
+		this.goDash()
+	}
+
+	onMouseMove({ movementX }) {
+		if (this.mouseLock) {
+			if (movementX > 0) {
+				this.angularVelocity = this.angularSpeed
+			}
+			else if (movementX < 0) {
+				this.angularVelocity = this.angularSpeed * -1
+			}
+		}
+	}
+
+	lockMouse() {
+		this.mouseLock = true
+		this.input.on('pointermove', this.onMouseMove.bind(this))
+	}
+
+	releaseMouseLock() {
+		this.input.off('pointermove', this.onMouseMove.bind(this))
+		this.mouseLock = false
+	}
+
+	releaseMouseControl() {
+		if (document.pointerLockElement === null) {
+			this.releaseMouseLock()
+		}
+		else {
+			this.lockMouse()
+		}
 	}
 }

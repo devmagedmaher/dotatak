@@ -1,3 +1,4 @@
+const Player = require("./player")
 
 
 module.exports = class Room {
@@ -12,19 +13,12 @@ module.exports = class Room {
 
   join(name, socket) {
     if (!this.players[name]) {
-      this.players[name] = {
-        socket,
-        connected: true,
-        name,
-        x: 0,
-        y: 0,
-        angle: 0,
-        score: 0,
-        alive: true,
-      }
+      this.players[name] = new Player(socket, { name })
     }
-
-    this.players[name].connected = true
+    else {
+      this.players[name].socket = socket
+      this.players[name].connected = true
+    }
 
     this.broadcast('add-player', this.getPlayer(name))
   }

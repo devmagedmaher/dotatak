@@ -7,12 +7,6 @@ export default class InGameScene extends Phaser.Scene {
     super({ key: 'InGameScene' });
   }
 
-  updateScoreTextPositions() {
-    for (let p in this.players) {
-      this.players[p].updateScoreTextPosition()
-    }
-  }
-
   emitCollision(winner, loser) {
     this.socket.emit('players-collided', { winner, loser })
   }
@@ -22,27 +16,18 @@ export default class InGameScene extends Phaser.Scene {
   }
 
   onAddPlayer(player) {
-    const { name, x, y } = player
-    if (this.players[name]) {
-      this.players[name].destroy()
-    }
-    this.players[name] = new DotHeroStatic(this, { name, x, y })
+    this.onRemovePlayer(player)
 
-    if (name === this.myName) {
-      this.players[name].sprite.alpha = 0;
-    }
-
-    this.updateScoreTextPositions()
+    const { name, x, y, score, mode } = player
+    this.players[name] = new DotHeroStatic(this, { name, x, y, score, mode })
   }
 
   onRemovePlayer(player) {
     const { name } = player
     if (this.players[name]) {
       this.players[name].destroy()
+      delete this.players[name]
     }
-    delete this.players[name]
-
-    this.updateScoreTextPositions()
   }
 
   onChangePlayerPosition(name, data) {
@@ -56,34 +41,31 @@ export default class InGameScene extends Phaser.Scene {
     const player = this.players[name]
     if (player) {
       player.score = score
-      player.updateScoreText()
     }
 
-    this.updateScoreTextPositions()
   }
 
   onKillPlayer(name) {
     const player = this.players[name]
     if (player) {
-      player.setAlive(false);
+      player.alive = false;
 
       if (this.myName === name) {
-        this.hero.relocate()
+        this.hero.goRandomPosition()
       }
     }
 
-    this.updateScoreTextPositions()
   }
 
   onRespawnPlayer(name) {
     const player = this.players[name]
     if (player) {
-      player.setAlive(true);
-
-      if (this.myName === name) {
-        this.hero.switchMode()
-      }
+      player.alive = true;
     }
+  }
+
+  onChangeMode() {
+    this.hero.goRandomMode()
   }
 
   onDisconnect() {
@@ -93,11 +75,10 @@ export default class InGameScene extends Phaser.Scene {
 
   addInitPlayers() {
     for (let player in this.init_players) {
-      const { name, x, y, score } = this.init_players[player]
-      this.players[player] = new DotHeroStatic(this, { name, x, y, score })
+      const { name, x, y, score, mode } = this.init_players[player]
+      this.players[player] = new DotHeroStatic(this, { name, x, y, score, mode })
     }
 
-    this.updateScoreTextPositions()
   }
 
   init(data) {
@@ -129,19 +110,20 @@ export default class InGameScene extends Phaser.Scene {
     this.socket.on('change-player-score', this.onChangePlayerScore.bind(this))
     this.socket.on('kill-player', this.onKillPlayer.bind(this))
     this.socket.on('respawn-player', this.onRespawnPlayer.bind(this))
+    this.socket.on('change-mode', this.onChangeMode.bind(this))
 
     // set world bounds
     this.physics.world.setBounds(0, 0, this.map.size, this.map.size);
     this.add.rectangle(this.map.size / 2, this.map.size / 2, this.map.size, this.map.size, 0x555555)
 
     // set main camera
-    this.main_camera = this.cameras.main.setBounds(0, 0, this.map.size, this.map.size).setName('main');
+    this.mainCamera = this.cameras.main.setBounds(0, 0, this.map.size, this.map.size).setName('main');
 
     // add random background
     addRandomBackgroundGeometries(this, 0.35)
 
     // set minimap
-    this.minimap_camera = this.cameras.add(
+    this.minimapCamera = this.cameras.add(
       this.minimap.offset,
       this.minimap.offset,
       this.minimap.size,
@@ -166,6 +148,8 @@ export default class InGameScene extends Phaser.Scene {
     // this.collidable.add(this.testSprite)
     this.addInitPlayers()
 
+    this.minimapCamera.ignore(this.ui)
+
     this.physics.add.overlap(this.collidable, this.collidable, this.onCollision.bind(this))
   }
 
@@ -177,30 +161,31 @@ export default class InGameScene extends Phaser.Scene {
       const [winner, loser] = RPS_RULES[a.mode][b.mode];
 
       if (winner && loser && loser.alive) {
-        loser.setAlive(false)
+        loser.alive = false
         this.emitCollision.call(this, winner.name, loser.name)
       }
     }
   }
 
   update() {
-    // update hero frame
+    // update hero
     this.hero.update()
 
-    // update hero mimics
+    // send hero location to room
+    this.socket.emit('player-position-changed', {
+      x: this.hero.x,
+      y: this.hero.y,
+      angle: this.hero.angle,
+      mode: this.hero.mode,
+    })
+
+    // update all players
     for (let player in this.players) {
       this.players[player].update()
     }
 
-    this.socket.emit('player-position-changed', {
-      x: this.hero.sprite.x,
-      y: this.hero.sprite.y,
-      angle: this.hero.sprite.angle,
-      mode: this.hero.mode,
-    })
-
     // update info
     const myPlayer = this.players[this.myName]
-    this.info_text.setText(`${this.room} - ${this.myName}: ${myPlayer?.score||0} (${myPlayer?.alive ? 'alive' : 'dead'}) [${['rock', 'paper', 'scissors'][myPlayer?.mode]}][${['rock', 'paper', 'scissors'][this.hero.mode]}]`)
+    this.info_text.setText(`${this.room} - ${this.myName}: ${myPlayer?.score||0} (${myPlayer?.alive ? 'alive' : 'dead'}) [${['rock', 'paper', 'scissors'][myPlayer?.mode]}]`)
   }
 }
