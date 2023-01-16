@@ -14,6 +14,7 @@
     "start-client": "cd ./client && yarn start",
     "start-server": "cd ./server && yarn start",
     "dev-server": "cd ./server && yarn dev",
+    "prebuild": "yarn install",
     "build": "cd ./client && yarn build",
     "postbuild": "cp -rf client/dist/ server/public"
   },
