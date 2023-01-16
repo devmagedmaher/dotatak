@@ -10,10 +10,10 @@
     "install-client": "cd ./client && yarn install",
     "install-server": "cd ./server && yarn install",
     "start": "yarn start-server",
-    "dev": "concurrently \"yarn start-client\" \"yarn dev-server\"",
-    "start-client": "cd ./client && yarn start",
-    "start-server": "cd ./server && yarn start",
+    "dev": "concurrently \"yarn dev-client\" \"yarn dev-server\"",
+    "dev-client": "cd ./client && yarn dev",
     "dev-server": "cd ./server && yarn dev",
+    "start-server": "cd ./server && yarn start",
     "prebuild": "yarn install",
     "build": "cd ./client && yarn build",
     "postbuild": "cp -rf client/dist/ server/public"

@@ -1,6 +1,5 @@
 
-// export const SOCKET_IO_URL = 'http://localhost:9001';
-export const SOCKET_IO_URL = 'http://192.168.1.97:9001';
+export const SOCKET_IO_URL = 'https://dotatak.mmya.io';
 
 export const SOCKET_IO = {
   ROOM_WORKSPACE: SOCKET_IO_URL + '/room'
