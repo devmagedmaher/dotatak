@@ -11,7 +11,8 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 		this.angularSpeed = 7;
 		this.angularFriction = 0.77;
 		this.linearSpeed = 250;
-		this.dashPower = 900;
+		this.dashPower = 2000;
+		this.dashFriction = 0.88;
 		this.modes = [
 			0, // rock
 			1, // paper
@@ -23,7 +24,7 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
     this.alive = true
 		this.angularVelocity = 0;
 		this.dash = 0;
-		this.dashing = false;
+		this.isDashing = false;
 		this.score = 0;
 		this.mouseLock = false;
 
@@ -35,14 +36,17 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 
 		// set external helpers
 		this.scene = scene;
+		this.input = scene.input;
 		// handle control inputs
 		// - keyboard inputs
-		this.cursors = scene.input.keyboard.createCursorKeys();
+		this.cursors = this.input.keyboard.createCursorKeys();
 		// - mouse inputs
-		this.input = scene.input;
-		// - lock pointer on click
 		this.input.on('pointerdown', this.onMouseClick.bind(this));
 		document.addEventListener('pointerlockchange', this.releaseMouseControl.bind(this));
+		// - touch inputs
+		this.input.addPointer(1) // add extra pointer
+		this.touch1 = this.input.pointer1
+		this.touch2 = this.input.pointer2
 
 		// follow sprite
 		scene.mainCamera.startFollow(this, false, 0.5, 0.5);
@@ -65,45 +69,84 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 	}
 
 	goDash() {
-		if (!this.dashing) {
-			this.dashing = true;
+		if (!this.isDashing) {
+			this.isDashing = true;
 			this.dash = this.dashPower;
 		}
 	}
 
+	goRight() {
+		this.angularVelocity = this.angularSpeed * -1;
+	}
+	goLeft() {
+		this.angularVelocity = this.angularSpeed;
+	}
+
 	update() {
-		// rotate hero left and right
-		// - with arrows
-		if (this.cursors.left.isDown) {
-			this.angularVelocity = this.angularSpeed * -1;
-		}
-		else if (this.cursors.right.isDown) {
-			this.angularVelocity = this.angularSpeed;
-		}
+		this.keyboardInputs()
+		this.touchInputs()
 
-		// add friction to angular velocity
-		this.angularVelocity *= this.angularFriction;
+		this.applyDashFriction()
+		this.applyAngularFriction()
 
-		// dash hero forward
-		if (this.cursors.up.isDown) {
-			this.goDash()
-		}
-
-		// reset dash flag on dash complete
-		if (this.cursors.up.isUp && this.dash <= 0) {
-			this.dashing = false
-		}
-
-		// add friction to dash velocity
-		if (this.dash > 0) {
-			this.dash -= this.dashPower / 20;
-		}
+		// update alive/dead display
+		this.setAlpha(this.player.alive ? 1 : 0.4)
 
 		// update angular velocity		
 		this.angle += this.angularVelocity
 		// update linear velocity
 		this.setVelocityX(Math.cos(Phaser.Math.DegToRad(this.angle)) * (this.linearSpeed + this.dash));
 		this.setVelocityY(Math.sin(Phaser.Math.DegToRad(this.angle)) * (this.linearSpeed + this.dash));
+	}
+
+	applyDashFriction() {
+		if (this.dash > 0) {
+			this.dash *= this.dashFriction;
+			if (this.dash <= 0.9) {
+				this.dash = 0
+				this.isDashing = false
+			}
+		}
+	}
+
+	applyAngularFriction() {
+		if (Math.abs(this.angularVelocity) > 0) {
+			this.angularVelocity *= this.angularFriction;
+			if (Math.abs(this.angularVelocity) <= 0.9) {
+				this.angularVelocity = 0;
+			}
+		}
+	}
+
+	keyboardInputs() {
+		// rotate hero left and right
+		if (this.cursors.left.isDown) {
+			this.goRight()
+		}
+		else if (this.cursors.right.isDown) {
+			this.goLeft()
+		}
+		// dash hero forward
+		if (this.cursors.up.isDown) {
+			this.goDash()
+		}
+	}
+
+	touchInputs() {
+		// mobile control
+		if (this.touch2.isDown) {
+			this.goDash()
+		}
+		else if (this.touch1.isDown) {
+			// first third
+			if (this.touch1.x < this.scene.scale.width / 3) {
+				this.goRight()
+			}
+			// last third
+			if (this.touch1.x > this.scene.scale.width / 3 * 2) {
+				this.goLeft()
+			}
+		}
 	}
 
 	onMouseClick() {

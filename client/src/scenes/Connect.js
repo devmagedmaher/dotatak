@@ -1,5 +1,5 @@
 import io from 'socket.io-client';
-import heroPNG from '../assets/images/hero.png';
+import boxPNG from '../assets/images/box.png';
 import { SOCKET_IO } from '../config';
 import getRoomNameFromURL from '../utils/get-room-name-from-url';
 
@@ -56,9 +56,9 @@ export default class Connect extends Phaser.Scene {
     this.room = getRoomNameFromURL()
   }
 
-  async preload() {
+  preload() {
     // preload game assets
-    this.load.spritesheet('hero', heroPNG, { frameWidth: 100, frameHeight: 100 });
+    this.load.image('box', boxPNG);
   }
 
   create() {

@@ -1,11 +1,10 @@
 import { HERO } from "../../config";
 
 export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
-  constructor(scene, { name, x = 0, y = 0, mode = 0, score = 0 } = {}) {
+  constructor(scene, { name, x = 0, y = 0, mode = 0, score = 0, alive = false, isAdmin = false } = {}) {
     super(scene, x, y, HERO, mode)
 		scene.add.existing(this)
 		scene.physics.add.existing(this)
-    scene.collidable.add(this)
 
     // static props
     this.name = name;
@@ -19,8 +18,9 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
 		]
 
     // state
-		this.mode = mode
-    this.alive = true
+    this.isAdmin = isAdmin;
+		this.mode = mode;
+    this.alive = alive;
     this.score = score;
 
     // update sprite
@@ -28,7 +28,6 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
 
     // hide self player for self
     if (scene.myName === name) {
-      // this.alpha = 0;
       this.visible = false;
     }
 
@@ -45,7 +44,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   updateSize(size) {
-    this.setDisplaySize(this.size, this.size);
+    this.setDisplaySize(size, size);
 		this.setCircle(this.width / 2);
   }
 
@@ -84,7 +83,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
       this.scene.mainCamera.width - 10,
       this._getScoreTextPositionY()
     )
-    .setText(`${this.name}: ${this.score}`)
+    .setText(`${this.isAdmin ? '($) ' : ''}${this.name}: ${this.score}`)
   }
 
   update() {
@@ -99,11 +98,12 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   updateState(data) {
-    const { x, y, angle, mode } = data
-    this.x = x;
-    this.y = y;
-    this.angle = angle;
-    this.mode = mode
+    const { x, y, angle, mode, alive } = data
+    this.x = x !== undefined ? x : this.x;
+    this.y = y !== undefined ? y : this.y;
+    this.angle = angle !== undefined ? angle : this.angle;
+    this.mode = mode !== undefined ? mode : this.mode;
+    this.alive = alive !== undefined ? alive : this.alive;
     this.refreshTexture()
   }
 
@@ -117,7 +117,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
 
   _getScoreTextPositionY() {
     const order = this._getOrder()
-    return 10 + (order * 15)
+    return 50 + (order * 15)
   }
 
   destroy() {

@@ -1,158 +1,214 @@
+import { EVENTS } from '../config';
+import heroPNG from '../assets/images/hero.png';
+import FullscreenButton from '../objects/buttons/fullscreen';
 import DotHero from '../objects/hero/dot';
 import DotHeroStatic from '../objects/hero/dot-static';
 import addRandomBackgroundGeometries from '../utils/add-random-background-geometries';
+import InfoText from '../objects/text/info';
 
 export default class InGameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'InGameScene' });
   }
 
-  emitCollision(winner, loser) {
-    this.socket.emit('players-collided', { winner, loser })
-  }
-
-  emitPlayerRespawn() {
-    this.socket.emit('player-respawn', this.myName)
-  }
-
-  onAddPlayer(player) {
-    this.onRemovePlayer(player)
-
-    const { name, x, y, score, mode } = player
-    this.players[name] = new DotHeroStatic(this, { name, x, y, score, mode })
-  }
-
-  onRemovePlayer(player) {
-    const { name } = player
-    if (this.players[name]) {
-      this.players[name].destroy()
-      delete this.players[name]
-    }
-  }
-
-  onChangePlayerPosition(name, data) {
-    const player = this.players[name]
-    if (player) {
-      player.updateState(data)
-    }
-  }
-
-  onChangePlayerScore(name, score) {
-    const player = this.players[name]
-    if (player) {
-      player.score = score
-    }
-
-  }
-
-  onKillPlayer(name) {
-    const player = this.players[name]
-    if (player) {
-      player.alive = false;
-
-      if (this.myName === name) {
-        this.hero.goRandomPosition()
-      }
-    }
-
-  }
-
-  onRespawnPlayer(name) {
-    const player = this.players[name]
-    if (player) {
-      player.alive = true;
-    }
-  }
-
-  onChangeMode() {
-    this.hero.goRandomMode()
-  }
-
-  onDisconnect() {
-    this.scene.stop('InGameScene')
-    this.scene.start('ConnectScene')
-  }
-
-  addInitPlayers() {
-    for (let player in this.init_players) {
-      const { name, x, y, score, mode } = this.init_players[player]
-      this.players[player] = new DotHeroStatic(this, { name, x, y, score, mode })
-    }
-
-  }
-
   init(data) {
+    // setting passed data
     this.myName = data.myName;
     this.room = data.room;
     this.init_players = data.init_players
     this.socket = data.socket;
 
-    // setting maps
+    // setting scene props
+    this.players = {}
+    this.isReady = true
+    this.isAdmin = false
     this.map = {
-      size: 1000,
+      name: 'main',
+      size: 1500,
+      color: 0x111111,
     }
     this.minimap = {
+      name: 'mini',
       offset: 10,
       size: 120,
       zoom: 0.08,
+      color: 0x002244,
     }
+  }
 
-    // props
-    this.players = {}
+  preload() {
+    // preload game assets
+    this.load.spritesheet('hero', heroPNG, {
+      frameWidth: 100,
+      frameHeight: 100
+    });
   }
 
   create() {
-    // listen to
-    this.socket.on('disconnect', this.onDisconnect.bind(this))
-    this.socket.on('add-player', this.onAddPlayer.bind(this))
-    this.socket.on('remove-player', this.onRemovePlayer.bind(this))
-    this.socket.on('change-player-position', this.onChangePlayerPosition.bind(this))
-    this.socket.on('change-player-score', this.onChangePlayerScore.bind(this))
-    this.socket.on('kill-player', this.onKillPlayer.bind(this))
-    this.socket.on('respawn-player', this.onRespawnPlayer.bind(this))
-    this.socket.on('change-mode', this.onChangeMode.bind(this))
+    // create random background
 
-    // set world bounds
+    this.listenToSocketIOEvents()
+    this.setWorldBounds()
+    this.setupCamera()
+    this.setUIGroup()
+    this.setPlayers()
+
+    // ignore ui elements in the minimap camera
+    this.minimapCamera.ignore(this.ui)
+  }
+
+  update() {
+    // update hero
+    this.updatePlayers()
+    // update ui
+    this.updateUIGroup()
+  }
+
+
+
+
+  /**
+   * Set phyisical world bounds
+   * 
+   */
+  setWorldBounds() {
+    // set physical world bounds
     this.physics.world.setBounds(0, 0, this.map.size, this.map.size);
-    this.add.rectangle(this.map.size / 2, this.map.size / 2, this.map.size, this.map.size, 0x555555)
-
-    // set main camera
-    this.mainCamera = this.cameras.main.setBounds(0, 0, this.map.size, this.map.size).setName('main');
-
-    // add random background
+    // set background for physical world bounds
+    this.add.rectangle(
+      this.map.size / 2,
+      this.map.size / 2,
+      this.map.size,
+      this.map.size,
+      this.map.color,
+    )
     addRandomBackgroundGeometries(this, 0.35)
+  }
 
-    // set minimap
+  /**
+   * Setup main and minimap cameras
+   * 
+   */
+  setupCamera() {
+    // setup bounds of main camera to world bounds
+    this.mainCamera = this.cameras.main.setBounds(
+      0,
+      0,
+      this.map.size,
+      this.map.size
+    ).setName(this.map.name);
+    // setup minimap camera
     this.minimapCamera = this.cameras.add(
       this.minimap.offset,
       this.minimap.offset,
       this.minimap.size,
       this.minimap.size
     ).setZoom(this.minimap.zoom)
-      .setName('mini')
-      .setBackgroundColor(0x002244)
-
-    // add ui group
-    this.ui = this.add.group()
-    this.info_text = this.add.text(0, 0, `${this.room}`, { font: '14px', fill: '#ffffff', align: 'center' })
-      .setScrollFactor(0)
-      .setPosition(this.minimap.size + this.minimap.offset * 2, 10)
-    this.ui.add(this.info_text)
-
-    // add hero to scene
-    this.hero = new DotHero(this);
-
-    // initialize players
-    this.collidable = this.add.group()
-    // this.testSprite = this.physics.add.image(300, 300, 'hero', 0)
-    // this.collidable.add(this.testSprite)
-    this.addInitPlayers()
-
-    this.minimapCamera.ignore(this.ui)
-
-    this.physics.add.overlap(this.collidable, this.collidable, this.onCollision.bind(this))
+    .setName(this.minimap.name)
+    .setBackgroundColor(this.minimap.color)    
   }
 
+  /**
+   * Add UI text and buttons
+   * and igronre elements in the minimap camera
+   */
+  setUIGroup() {
+    // create group for UI elements
+    this.ui = this.add.group()
+    // add UI Text
+    // - add info text (room - name: score (alive|dead) [weapon] #rank)
+    this.infoText = new InfoText(this, this.minimap.size + this.minimap.offset * 2, 10, `${this.room}`)
+    // - add players list text
+
+    // add UI buttons
+    // - add full screen button
+    this.fullscreenButton = new FullscreenButton(this, this.scale.width - 10, 10, undefined, { origin: { x: 1 } })
+    // - add ready button
+
+    // add to ui group
+    this.ui.addMultiple([
+      this.infoText,
+      this.fullscreenButton,
+    ])
+  }
+
+  /**
+   * Add players to the scene
+   * and add the collission detection between them
+   * 
+   */
+  setPlayers() {
+    // create collision group
+    this.collidable = this.add.group()
+    // add hero (in random position)
+    this.hero = new DotHero(this);
+    // add existing other players
+    this.setAllPlayers()
+    // add other players to collidable group
+    this.collidable.addMultiple(Object.values(this.players).filter(p => p.name === this.myName))
+    // add overlap (insted of collision) for collision detection between this player and others
+    this.physics.add.overlap(
+      this.hero.player,
+      this.collidable,
+      this.onCollision.bind(this))
+  }
+
+  /**
+   * Add existing other players
+   * 
+   */
+  setAllPlayers() {
+    for (let player in this.init_players) {
+      this.players[player] = new DotHeroStatic(this, this.init_players[player])
+
+      // check if this is hero's player
+      if (player === this.myName) {
+        // add player mimic to hero object (for easier accissibility)
+        this.hero.player = this.players[player]
+      }
+    }
+  }
+
+
+
+
+  /**
+   * update all players including hero
+   * 
+   */
+  updatePlayers() {
+    // update hero state
+    this.hero.update()
+    // edit player's position
+    this.emitPosition()
+    // update all players
+    for (let player in this.players) {
+      this.players[player].update()
+    }
+    // update self
+    // - is admin prop
+    this.isAdmin = this.hero.player.isAdmin
+  }
+
+  /**
+   * Update UI components (text/buttons)
+   * 
+   */
+  updateUIGroup() {
+    // update buttons
+    this.fullscreenButton.update()
+    // update text
+    this.infoText.update()
+  }
+
+
+
+
+
+  /**
+   * Handle players collision when detected
+   * 
+   */
   onCollision(pA, pB) {
     const [a, b] = [ this.players[pA.name], this.players[pB.name] ]
     if (a && b && a.mode !== b.mode) {
@@ -167,25 +223,146 @@ export default class InGameScene extends Phaser.Scene {
     }
   }
 
-  update() {
-    // update hero
-    this.hero.update()
 
-    // send hero location to room
-    this.socket.emit('player-position-changed', {
+
+
+
+  /**
+   * Add event listeners for socket.io events
+   * 
+   */
+   listenToSocketIOEvents() {
+    this.socket.on('disconnect', this.onDisconnect.bind(this))
+
+    this.socket.on('count-down', this.onCountDown.bind(this))
+    this.socket.on('set-new-admin', this.onSetNewAdmin.bind(this))
+    this.socket.on('change-mode', this.onChangeMode.bind(this))
+
+    this.socket.on('add-player', this.onAddPlayer.bind(this))
+    this.socket.on('remove-player', this.onRemovePlayer.bind(this))
+    this.socket.on('change-player-position', this.onChangePlayerPosition.bind(this))
+    this.socket.on('change-player-score', this.onChangePlayerScore.bind(this))
+    this.socket.on('update-players-state', this.onChangePlayerState.bind(this))
+    this.socket.on('kill-player', this.onKillPlayer.bind(this))
+    this.socket.on('respawn-player', this.onRespawnPlayer.bind(this))
+  }
+
+  onDisconnect() {
+    this.scene.start('ConnectScene')
+  }
+
+  onCountDown(counter) {
+    console.log({ counter })
+  }
+
+  onAddPlayer(player) {
+    // remove if exists
+    this.onRemovePlayer(player)
+    // add player
+    this.players[player.name] = new DotHeroStatic(this, player)
+    // add to collidable group
+    this.collidable.add(this.players[player.name])
+  }
+
+  onRemovePlayer(player) {
+    const { name } = player
+    // check if player exists
+    if (this.players[name]) {
+      // destroy player
+      this.players[name].destroy()
+      // delete player
+      delete this.players[name]
+    }
+  }
+
+  onChangePlayerPosition(name, data) {
+    const player = this.players[name]
+    // if player exists
+    if (player) {
+      // update player position
+      player.updateState(data)
+    }
+  }
+
+  onChangePlayerState(players) {
+    // update state of all players
+    for (let p in players) {
+      const player = this.players[p]
+      // if player exists
+      if (player) {
+        // update player state
+        player.updateState(players[p])
+      }
+    }
+  }
+
+  onChangePlayerScore(name, score) {
+    const player = this.players[name]
+    // if player exists
+    if (player) {
+      // update player score
+      player.score = score
+    }
+  }
+
+  onKillPlayer(name) {
+    const player = this.players[name]
+    // if player exists
+    if (player) {
+      // kill player
+      player.alive = false;
+
+      // if player is self
+      if (this.myName === name) {
+        // respawn to random position
+        this.hero.goRandomPosition()
+      }
+    }
+  }
+
+  onRespawnPlayer(name) {
+    const player = this.players[name]
+    // if player exists
+    if (player) {
+      // resurrect player
+      player.alive = true;
+    }
+  }
+
+  onSetNewAdmin(name) {
+    // if player exists
+    if (this.players[name]) {
+      // set player to admin
+      this.players[name].isAdmin = true;
+    }
+  }
+
+  onChangeMode() {
+    // set hero to random mode
+    this.hero.goRandomMode()
+  }
+
+
+  /**
+   * Send collision between collided players
+   * (winner/loser players)
+   * 
+   */
+  emitCollision(winner, loser) {
+    this.socket.emit(EVENTS.SOCKET.PLAYERS_COLLIDED, winner, loser)
+  }
+
+  /**
+   * Send player's position
+   * 
+   */
+  emitPosition() {
+    this.socket.emit(EVENTS.SOCKET.PLAYER_POSITION_CHANGED, {
       x: this.hero.x,
       y: this.hero.y,
       angle: this.hero.angle,
       mode: this.hero.mode,
     })
-
-    // update all players
-    for (let player in this.players) {
-      this.players[player].update()
-    }
-
-    // update info
-    const myPlayer = this.players[this.myName]
-    this.info_text.setText(`${this.room} - ${this.myName}: ${myPlayer?.score||0} (${myPlayer?.alive ? 'alive' : 'dead'}) [${['rock', 'paper', 'scissors'][myPlayer?.mode]}]`)
+    
   }
 }

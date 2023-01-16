@@ -1,6 +1,7 @@
 const Room = require("./room");
-
-const MAX_ROOM_PLAYERS = 5;
+const {
+  MAX_ROOM_PLAYERS
+} = require("./config");
 
 module.exports = io => {
 
@@ -30,10 +31,28 @@ module.exports = io => {
 
       // join player to room
       room.join(name, socket)
-      socket.join(room_name)
 
       // send inital data
-      socket.emit('init', room.getPlayers())
+      socket.emit('init', room.getPlayers(true))
+      
+      socket.on('game-starting', () => {
+        if (!room.isPlaying && !room.isStarting) {
+          room.isStarting = true;
+          let counter = 5;
+
+          const interval = setInterval(() => {
+            console.log({ room_name, counter })
+            room.broadcast('count-down', counter)
+
+            if (counter <= 0) {
+              clearInterval(interval)
+              room.startGame()
+            }
+
+            counter--
+          }, 1000);
+        }
+      })
 
       // listen to player position change
       socket.on('player-position-changed', data => {
@@ -41,7 +60,7 @@ module.exports = io => {
       })
 
       // listen to player score change
-      socket.on('players-collided', ({ winner, loser }) => {
+      socket.on('players-collided', (winner, loser) => {
         if (room.players[winner] && room.players[loser]?.alive) {
           room.players[loser].alive = false
           room.addPlayerScore(winner, 1)
@@ -55,7 +74,7 @@ module.exports = io => {
           setTimeout(() => {
             room.players[loser].alive = true
             room.broadcast('respawn-player', loser)
-          }, 10000)
+          }, 6000)
         }
       })
 
