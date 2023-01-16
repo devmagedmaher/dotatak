@@ -1,5 +1,5 @@
 
-export const SOCKET_IO_URL = 'https://dotatak.mmya.io';
+export const SOCKET_IO_URL = '';
 
 export const SOCKET_IO = {
   ROOM_WORKSPACE: SOCKET_IO_URL + '/room'
