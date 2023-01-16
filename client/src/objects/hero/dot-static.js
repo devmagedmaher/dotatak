@@ -5,6 +5,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
     super(scene, x, y, HERO, mode)
 		scene.add.existing(this)
 		scene.physics.add.existing(this)
+    this.components = scene.add.group()
 
     // static props
     this.name = name;
@@ -34,10 +35,12 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
     // add labels
     this.addNameText()
     this.addScoreText()
-    scene.ui.add(this.name_text)
-    scene.ui.add(this.score_text)
+    scene.ui.addMultiple([this.nameText, this.scoreText])
     // ignore labels in minimap
     scene.minimapCamera.ignore(scene.ui)
+
+    // add components to single group
+    this.components.addMultiple([this.nameText, this.scoreText])
 
     // set scene
     this.scene = scene
@@ -49,7 +52,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   addNameText() {
-    this.name_text = this.scene.add.text(this.x, this.y, `${this.name_label}`, {
+    this.nameText = this.scene.add.text(this.x, this.y, `${this.name_label}`, {
       font: '12px',
       fill: '#00ff00',
       align: 'center'
@@ -57,9 +60,9 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   updateNameText() {
-    this.name_text.setPosition(
-      this.x - (this.name_text.width / 2),
-      this.y - this.height - this.name_text.height
+    this.nameText.setPosition(
+      this.x - (this.nameText.width / 2),
+      this.y - this.height - this.nameText.height
     )
     .setText(this.alive
       ? `${this.name_label}`
@@ -68,18 +71,18 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   addScoreText() {
-    this.score_text = this.scene.add.text(0, 0, `${this.name}: ${this.score}`, {
+    this.scoreText = this.scene.add.text(0, 0, `${this.name}: ${this.score}`, {
       font: '12px',
       fill: '#ffffff',
       align: 'right',
     })
-    this.score_text.setOrigin(1, 0);
-    this.score_text.setScrollFactor(0);
-    this.scene.ui.add(this.score_text)
+    this.scoreText.setOrigin(1, 0);
+    this.scoreText.setScrollFactor(0);
+    this.scene.ui.add(this.scoreText)
   }
 
   updateScoreText() {
-    this.score_text.setPosition(
+    this.scoreText.setPosition(
       this.scene.mainCamera.width - 10,
       this._getScoreTextPositionY()
     )
@@ -121,8 +124,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   destroy() {
-    this.name_text?.destroy()
-    this.score_text?.destroy()
+    this.components.destroy(true)
     super.destroy()
   }
 }
