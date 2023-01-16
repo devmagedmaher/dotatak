@@ -16,7 +16,7 @@
     "start-server": "cd ./server && yarn start",
     "prebuild": "yarn install",
     "build": "cd ./client && yarn build",
-    "postbuild": "cp -rf client/dist/ server/public"
+    "postbuild": "rm -rf server/public && cp -rf client/dist/ server/public"
   },
   "dependencies": {
     "concurrently": "^7.6.0"
