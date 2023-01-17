@@ -3,7 +3,7 @@ const express = require('express');
 const http = require('http');
 const socketio = require('socket.io');
 const cors = require('cors')
-const path = require('path')
+const path = require('path');
 
 // Initialize the Express app
 const app = express();
@@ -13,10 +13,12 @@ app.use(cors({
   origin: '*',
 }));
 
-// ping route
-app.get('/ping', (_, res) => res.send('ping!'))
+// Route ping
+app.get('/health', (_, res) => res.send('ok'))
+// Route get random username
+app.get('/username', (_, res) => res.json({ username: require('./utils/get-meaningful-username')() }))
 
-// handle public direcotry
+// serve public direcotry
 app.use(express.static(path.join(__dirname, 'public')))
 
 // Create the HTTP server

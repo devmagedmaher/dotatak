@@ -1,7 +1,7 @@
-import adjectives from '../data/adjectives.json'
-import nouns from '../data/nouns.json'
+const adjectives = require('../data/adjectives.json')
+const nouns = require('../data/nouns.json')
 
-export default function generateMeaningfulUniqueName() {
+module.exports = function geeaningfulUsername() {
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
   const noun = nouns[Math.floor(Math.random() * nouns.length)]
   const rnd = Math.floor(Math.random() * 1000)

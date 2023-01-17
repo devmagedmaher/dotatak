@@ -3,6 +3,11 @@ import * as baseConfig from '../../config'
 
 const config = merge(baseConfig, {
 
+  API_ROUTES: {
+    HEALTH: baseConfig.SERVER_URL + '/ok',
+    GET_USERNAME: baseConfig.SERVER_URL + '/username',
+  },
+
   SOCKET_WORKSPACES: {
     ROOM: baseConfig.SERVER_URL + '/room'
   },
@@ -18,20 +23,28 @@ const config = merge(baseConfig, {
     }
   },
 
+  STORAGE: {
+    NAME: '_name'
+  },
+
   PING_INTERVAL_TIME: 1000, // every one second
 
 })
 
 const {
+  API_ROUTES,
   SOCKET_WORKSPACES,
   TEXTURES,
   EVENTS,
+  STORAGE,
   PING_INTERVAL_TIME
 } = config
 
 export {
+  API_ROUTES,
   SOCKET_WORKSPACES,
   TEXTURES,
   EVENTS,
+  STORAGE,
   PING_INTERVAL_TIME
 }
