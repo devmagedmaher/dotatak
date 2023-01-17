@@ -27,7 +27,7 @@ const config = merge(baseConfig, {
     NAME: '_name'
   },
 
-  PING_INTERVAL_TIME: 1000, // every one second
+  PING_INTERVAL_TIME: 1000, // check ping interval
 
 })
 
@@ -37,7 +37,7 @@ const {
   TEXTURES,
   EVENTS,
   STORAGE,
-  PING_INTERVAL_TIME
+  PING_INTERVAL_TIME,
 } = config
 
 export {
@@ -46,5 +46,5 @@ export {
   TEXTURES,
   EVENTS,
   STORAGE,
-  PING_INTERVAL_TIME
+  PING_INTERVAL_TIME,
 }

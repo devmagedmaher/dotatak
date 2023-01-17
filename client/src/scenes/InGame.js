@@ -17,8 +17,8 @@ export default class InGameScene extends Phaser.Scene {
     this.room = data.room;
     this.init_players = data.init_players
     this.socket = data.socket;
-    this.ping = null
-    this.pingDate = null
+    this.ping = null;
+    this.pingDate = null;
 
     // setting scene props
     this.players = {}
@@ -61,6 +61,10 @@ export default class InGameScene extends Phaser.Scene {
   }
 
   update() {
+    // update hero state
+    this.hero.update()
+    // send player position
+    this.emitPosition()
     // update hero
     this.updatePlayers()
     // update ui
@@ -180,10 +184,6 @@ export default class InGameScene extends Phaser.Scene {
    * 
    */
   updatePlayers() {
-    // update hero state
-    this.hero.update()
-    // edit player's position
-    this.emitPosition()
     // update all players
     for (let player in this.players) {
       this.players[player].update()
