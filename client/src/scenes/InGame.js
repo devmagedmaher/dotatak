@@ -278,15 +278,14 @@ export default class InGameScene extends Phaser.Scene {
 
   onAddPlayer(player) {
     // remove if exists
-    this.onRemovePlayer(player)
+    this.onRemovePlayer(player.name)
     // add player
     this.players[player.name] = new DotHeroStatic(this, player)
     // add to collidable group
     this.collidable.add(this.players[player.name])
   }
 
-  onRemovePlayer(player) {
-    const { name } = player
+  onRemovePlayer(name) {
     // check if player exists
     if (this.players[name]) {
       // destroy player
