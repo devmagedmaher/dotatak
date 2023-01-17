@@ -1,5 +1,6 @@
 
-module.exports.SERVER_URL = 'https://dotatak.mmya.io',
+module.exports.SERVER_URL = '',
+module.exports.SOCKET_URL = module.exports.SERVER_URL,
 
 module.exports.EVENTS = {
   SOCKET: {

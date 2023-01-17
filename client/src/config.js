@@ -9,7 +9,7 @@ const config = merge(baseConfig, {
   },
 
   SOCKET_WORKSPACES: {
-    ROOM: baseConfig.SERVER_URL + '/room'
+    ROOM: baseConfig.SOCKET_URL + '/room'
   },
 
   TEXTURES: {
