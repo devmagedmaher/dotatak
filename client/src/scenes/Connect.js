@@ -1,6 +1,8 @@
 import io from 'socket.io-client';
+import { EVENTS } from '../../../config';
 import boxPNG from '../assets/images/box.png';
-import { SOCKET_IO } from '../config';
+import { SOCKET_WORKSPACES } from '../config';
+// import { SERVER_URL } from '../config';
 import getRoomNameFromURL from '../utils/get-room-name-from-url';
 
 export default class Connect extends Phaser.Scene {
@@ -30,16 +32,16 @@ export default class Connect extends Phaser.Scene {
           reject(new Error('No room was specified!'))
           return
         }
-        this.socket = io(SOCKET_IO.ROOM_WORKSPACE, { query: { name: this.myName, room: this.room } })  
+        this.socket = io(SOCKET_WORKSPACES.ROOM, { query: { name: this.myName, room: this.room } })  
 
         // on init = no erros
-        this.socket.on('init', players => {
+        this.socket.on(EVENTS.SOCKET.ROOM.INIT, players => {
           this.players = players
           resolve()
         })
 
         // on error
-        this.socket.on('error', message => {
+        this.socket.on(EVENTS.SOCKET.ROOM.ERROR, message => {
           reject(new Error(message))
         })
       }

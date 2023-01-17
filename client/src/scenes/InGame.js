@@ -1,4 +1,4 @@
-import { EVENTS } from '../config';
+import { EVENTS, PING_INTERVAL_TIME } from '../config';
 import heroPNG from '../assets/images/hero.png';
 import FullscreenButton from '../objects/buttons/fullscreen';
 import DotHero from '../objects/hero/dot';
@@ -17,6 +17,8 @@ export default class InGameScene extends Phaser.Scene {
     this.room = data.room;
     this.init_players = data.init_players
     this.socket = data.socket;
+    this.ping = null
+    this.pingDate = null
 
     // setting scene props
     this.players = {}
@@ -48,6 +50,7 @@ export default class InGameScene extends Phaser.Scene {
     // create random background
 
     this.listenToSocketIOEvents()
+    this.addPingEmitter()
     this.setWorldBounds()
     this.setupCamera()
     this.setUIGroup()
@@ -226,25 +229,43 @@ export default class InGameScene extends Phaser.Scene {
 
 
 
+  /**
+   * add intervale for ping emitter
+   * 
+   */
+  addPingEmitter() {
+    this.pingInterval = setInterval(
+      () => {
+        this.pingDate = Date.now()
+        this.emitPing.call(this)
+      },
+      PING_INTERVAL_TIME
+    );
+  }
 
   /**
    * Add event listeners for socket.io events
    * 
    */
    listenToSocketIOEvents() {
-    this.socket.on('disconnect', this.onDisconnect.bind(this))
+    this.socket.on(EVENTS.SOCKET.ROOM.DISCONNECT, this.onDisconnect.bind(this))
+    this.socket.on(EVENTS.SOCKET.PONG, this.onPong.bind(this))
 
-    this.socket.on('count-down', this.onCountDown.bind(this))
-    this.socket.on('set-new-admin', this.onSetNewAdmin.bind(this))
-    this.socket.on('change-mode', this.onChangeMode.bind(this))
+    // this.socket.on('count-down', this.onCountDown.bind(this))
+    // this.socket.on('set-new-admin', this.onSetNewAdmin.bind(this))
+    // this.socket.on('change-mode', this.onChangeMode.bind(this))
 
-    this.socket.on('add-player', this.onAddPlayer.bind(this))
-    this.socket.on('remove-player', this.onRemovePlayer.bind(this))
-    this.socket.on('change-player-position', this.onChangePlayerPosition.bind(this))
-    this.socket.on('change-player-score', this.onChangePlayerScore.bind(this))
-    this.socket.on('update-players-state', this.onChangePlayerState.bind(this))
-    this.socket.on('kill-player', this.onKillPlayer.bind(this))
-    this.socket.on('respawn-player', this.onRespawnPlayer.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.ADD, this.onAddPlayer.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.REMOVE, this.onRemovePlayer.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.CHANGE_POISITION, this.onChangePlayerPosition.bind(this))
+    // this.socket.on('change-player-score', this.onChangePlayerScore.bind(this))
+    // this.socket.on('update-players-state', this.onChangePlayerState.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.KILL, this.onKillPlayer.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.RESPAWN, this.onRespawnPlayer.bind(this))
+  }
+
+  onPong() {
+    this.ping = Date.now() - this.pingDate
   }
 
   onDisconnect() {
@@ -275,12 +296,12 @@ export default class InGameScene extends Phaser.Scene {
     }
   }
 
-  onChangePlayerPosition(name, data) {
+  onChangePlayerPosition(name, x, y, angle) {
     const player = this.players[name]
     // if player exists
     if (player) {
       // update player position
-      player.updateState(data)
+      player.updateState({ x, y, angle })
     }
   }
 
@@ -344,25 +365,35 @@ export default class InGameScene extends Phaser.Scene {
 
 
   /**
+   * Send ping to socket server
+   * 
+   */
+  emitPing() {
+    this.socket.emit(EVENTS.SOCKET.PING)
+  }
+
+  /**
    * Send collision between collided players
    * (winner/loser players)
    * 
    */
   emitCollision(winner, loser) {
-    this.socket.emit(EVENTS.SOCKET.PLAYERS_COLLIDED, winner, loser)
+    this.socket.emit(EVENTS.SOCKET.PLAYERS.COLLIDED,
+      winner,
+      loser
+    )
   }
 
   /**
-   * Send player's position
+   * Send new position of the player
    * 
    */
   emitPosition() {
-    this.socket.emit(EVENTS.SOCKET.PLAYER_POSITION_CHANGED, {
-      x: this.hero.x,
-      y: this.hero.y,
-      angle: this.hero.angle,
-      mode: this.hero.mode,
-    })
+    this.socket.emit(EVENTS.SOCKET.PLAYER.POSITION_CHANGED,
+      Math.round(this.hero.x),
+      Math.round(this.hero.y),
+      Math.round(this.hero.angle)
+    )
     
   }
 }

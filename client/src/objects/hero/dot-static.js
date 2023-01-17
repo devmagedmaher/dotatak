@@ -1,8 +1,8 @@
-import { HERO } from "../../config";
+import { TEXTURES } from "../../config";
 
 export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   constructor(scene, { name, x = 0, y = 0, mode = 0, score = 0, alive = false, isAdmin = false } = {}) {
-    super(scene, x, y, HERO, mode)
+    super(scene, x, y, TEXTURES.HERO, mode)
 		scene.add.existing(this)
 		scene.physics.add.existing(this)
     this.components = scene.add.group()

@@ -1,94 +1,129 @@
 const Room = require("./room");
-const {
-  MAX_ROOM_PLAYERS
-} = require("./config");
+const { DEFAULT } = require('./config');
+const { EVENTS } = require("../config");
 
 module.exports = io => {
-
+  // init rooms container
   let rooms = {}
-  // const getRooms = () => Object.values(rooms).map(room => room.getInfo())
 
+  // create "/room" workspace
   const roomIO = io.of('/room')
 
   // Listen for new connections
   roomIO.on('connection', (socket) => {
     try {
+      // get player information
       const { name, room: room_name } = socket.handshake.query
       console.log('A new player has connected!', name, room_name, socket.id);
 
-      // get room or create
+      // Create room by name if not exists
       if (!rooms[room_name]) {
+        // create & store room instance
         rooms[room_name] = new Room(room_name, { io, roomIO })
       }
+
+      // Get room by name
       const room = rooms[room_name]
 
-      // check room capacity
-      if (room.getConnectedPlayers() >= MAX_ROOM_PLAYERS) {
-        socket.emit('error', 'Room is full!')
+      // Check of room capacity
+      if (room.getConnectedPlayers() >= DEFAULT.ROOM.MAX_PLAYERS) {
+        // send error to player with message
+        socket.emit(EVENTS.SOCKET.ROOM.ERROR, 'Room is full!')
+        // disconnect payer
         socket.disconnect()
+        // discontinue after disconnection
         return
       }
 
       // join player to room
       room.join(name, socket)
+      // send player data to room
+      room.broadcast(EVENTS.SOCKET.PLAYER.ADD, room.getPlayer(name))
 
-      // send inital data
-      socket.emit('init', room.getPlayers(true))
+      // send inital data to player
+      socket.emit(EVENTS.SOCKET.ROOM.INIT, room.getPlayers(true))
       
-      socket.on('game-starting', () => {
-        if (!room.isPlaying && !room.isStarting) {
-          room.isStarting = true;
-          let counter = 5;
+      // socket.on('game-starting', () => {
+      //   if (!room.isPlaying && !room.isStarting) {
+      //     room.isStarting = true;
+      //     let counter = 5;
 
-          const interval = setInterval(() => {
-            console.log({ room_name, counter })
-            room.broadcast('count-down', counter)
+      //     const interval = setInterval(() => {
+      //       console.log({ room_name, counter })
+      //       room.broadcast('count-down', counter)
 
-            if (counter <= 0) {
-              clearInterval(interval)
-              room.startGame()
-            }
+      //       if (counter <= 0) {
+      //         clearInterval(interval)
+      //         room.startGame()
+      //       }
 
-            counter--
-          }, 1000);
-        }
+      //       counter--
+      //     }, 1000);
+      //   }
+      // })
+
+      // Listen to change of player position
+      socket.on(EVENTS.SOCKET.PLAYER.POSITION_CHANGED, (x, y, angle) => {
+        // upate player position
+        room.updatePlayerPosition(name, { x, y, angle })
+        // send player position to room
+        room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_POISITION, name, x, y, angle)
       })
 
-      // listen to player position change
-      socket.on('player-position-changed', data => {
-        room.updatePlayerPosition(name, data)
-      })
-
-      // listen to player score change
-      socket.on('players-collided', (winner, loser) => {
-        if (room.players[winner] && room.players[loser]?.alive) {
-          room.players[loser].alive = false
+      // Listen to collision of two players
+      socket.on(EVENTS.SOCKET.PLAYER.COLLIDED, (winner, loser) => {
+        if (room.getPlayer(winner) && room.getPlayer(loser)?.alive) {
+          // kill player who lost
+          room.killPlayer(loser)
+          // send killed player name to room
+          room.broadcast(EVENTS.SOCKET.PLAYER.KILL, loser)
+          
+          // add score to player who won
           room.addPlayerScore(winner, 1)
+          // send new score of player who won
+          room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_SCORE, name, room.getPlayer(name).score)
 
-          room.broadcast('kill-player', loser)
-
-          setTimeout(() => {
-            room.players[loser].socket.emit('change-mode')
-          }, 5000)
+          // wait for timeout to change loser's mode
+          setTimeout(
+            () => {
+              // send change mode command to loser
+              room.getPlayer(loser).socket.emit(EVENTS.SOCKET.PLAYER.CHANGE_MODE)
+            },
+            DEFAULT.GAME.TIMEOUT_TO_CHANGE_MODE_AFTER_KILLED
+          )
         
-          setTimeout(() => {
-            room.players[loser].alive = true
-            room.broadcast('respawn-player', loser)
-          }, 6000)
+          // wait for timeout to respawn loser
+          setTimeout(
+            () => {
+              // respawn player who lost
+              room.respawnPlayer()
+              // send respawned player name to room
+              room.broadcast('', loser)
+            },
+            DEFAULT.GAME.TIMEOUT_TO_RESPAWN_AFTER_KILLED
+          )
         }
       })
 
-      // Listen for a "disconnect" event
-      socket.on('disconnect', () => {
+      // Listen to "disconnect" event
+      socket.on(EVENTS.SOCKET.ROOM.DISCONNECT, () => {
         console.log('A player has disconnected!', name, room_name);
+        // leave player the room
         room.leave(name)
+        // send player to remove from room
+        room.broadcast(EVENTS.SOCKET.PLAYER.REMOVE, name)
       });
     }
     catch (e) {
       console.log('an error occured', socket.handshake.query, e);
-      socket.emit('error', e.toString())
+      // send error to player
+      socket.emit(EVENTS.SOCKET.ROOM.ERROR, e.toString())
+      // disconnect player
       socket.disconnect()
     }
+
+    // Listen to "ping <=> pong" event
+    socket.on("ping", () => socket.emit("pong"));
   });
 
 }

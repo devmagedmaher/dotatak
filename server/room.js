@@ -14,7 +14,7 @@ module.exports = class Room {
   }
 
   join(name, socket) {
-    if (!this.players[name]) {
+    if (!this.getPlayer(name)) {
       this.players[name] = new Player(socket, { name })
     }
     else {
@@ -27,19 +27,16 @@ module.exports = class Room {
     }
     
     socket.join(this.name)
-    this.broadcast('add-player', this.getPlayer(name))
   }
 
   leave(name) {
-    if (this.players[name]) {
+    if (this.getPlayer(name)) {
       this.players[name].isConnected = false;
-      if (this.players[name].isAdmin) {
+      if (this.getPlayer(name).isAdmin) {
         this.players[name].isAdmin = false
         this.setRandomAdmin()
       }
     }
-
-    this.broadcast('remove-player', this.getPlayer(name))
   }
 
   startGame(connectedOnly = true) {
@@ -59,42 +56,56 @@ module.exports = class Room {
 
   getPlayers(connectedOnly = false) {
     const players = {}
-    for (let p in this.players) {
-      const { socket, ...data } = this.players[p]
-      if (connectedOnly && !data.isConnected) {
+    for (let name in this.players) {
+      const player = this.getPlayer(name)
+      if (connectedOnly && !player.isConnected) {
         continue
       }
-      players[p] = data
+      players[name] = player
     }
     return players
   }
 
   getPlayer(name) {
-    const { socket, ...player } = this.players[name]
-    return player
+    if (this.players[name]) {
+      const { socket, ...player } = this.players[name]
+      return player
+    }
+    return null
   }
 
   getConnectedPlayers() {
     return Object.values(this.players).filter(p => p.isConnected).length;
   }
 
-  updatePlayerPosition(name, data) {
+  updatePlayerPosition(name, { x, y, angle }) {
     if (this.players[name]) {
-      this.players[name] = {
-        ...this.players[name],
-        ...data,
-      }
+      this.players[name].x = x
+      this.players[name].y = y
+      this.players[name].angle = angle
     }
-
-    this.broadcast('change-player-position', name, data)
+    return this.getPlayer(name)
   }
 
   addPlayerScore(name, score) {
-    if (this.players[name]) {
+    if (this.getPlayer(name)) {
       this.players[name].score += score
-
-      this.broadcast('change-player-score', name, this.players[name].score)
     }
+    return this.getPlayer(name)
+  }
+
+  killPlayer(name) {
+    if (room.getPlayer(name)) {
+      room.players[name].alive = false
+    }
+    return this.getPlayer(name)
+  }
+
+  respawnPlayer(name) {
+    if (room.getPlayer(name)) {
+      room.players[name].alive = true
+    }
+    return this.getPlayer(name)
   }
 
   setRandomAdmin() {
@@ -108,9 +119,10 @@ module.exports = class Room {
   }
 
   getInfo() {
+    const { io, roomIO, players, ...room } = this
     return {
-      name: this.name,
-      players: Object.keys(this.players).length
+      ...room,
+      players: Object.keys(players).length
     }
   }
 

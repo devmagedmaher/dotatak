@@ -1,20 +1,37 @@
+import merge from 'webpack-merge'
+import * as baseConfig from '../../config'
 
-export const SOCKET_IO_URL = '';
+const config = merge(baseConfig, {
 
-export const SOCKET_IO = {
-  ROOM_WORKSPACE: SOCKET_IO_URL + '/room'
+  SOCKET_WORKSPACES: {
+    ROOM: baseConfig.SERVER_URL + '/room'
+  },
+
+  TEXTURES: {
+    HERO: 'hero',
+    BOX: 'box',
+  },
+
+  EVENTS: {
+    SOCKET: {
+      TEST_EVENT_BLAKJDF: 'test-vente-sdfkjsdf'
+    }
+  },
+
+  PING_INTERVAL_TIME: 1000, // every one second
+
+})
+
+const {
+  SOCKET_WORKSPACES,
+  TEXTURES,
+  EVENTS,
+  PING_INTERVAL_TIME
+} = config
+
+export {
+  SOCKET_WORKSPACES,
+  TEXTURES,
+  EVENTS,
+  PING_INTERVAL_TIME
 }
-
-export const EVENTS = {
-  SOCKET: {
-    PLAYER_POSITION_CHANGED: 'player-position-changed',
-    PLAYERS_COLLIDED: 'players-collided',
-  }
-}
-
-export const TEXTURES = {
-  HERO: 'hero',
-  BOX: 'box',
-}
-export const HERO = TEXTURES.HERO
-export const BOX = TEXTURES.BOX

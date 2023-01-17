@@ -1,4 +1,4 @@
-import { BOX } from "../../config"
+import { TEXTURES } from "../../config"
 
 export default class Button extends Phaser.GameObjects.Image {
   constructor(scene, x = 0, y = 0, text = '...', {
@@ -9,7 +9,7 @@ export default class Button extends Phaser.GameObjects.Image {
     },
     scrollFactor = 0,
   } = {}) {
-    super(scene, x, y, BOX)
+    super(scene, x, y, TEXTURES.BOX)
     scene.add.existing(this)
     this.group = scene.add.group()
 
