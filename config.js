@@ -1,6 +1,5 @@
 
 module.exports.SERVER_URL = '',
-module.exports.SERVER_URL = 'http://localhost:9001',
 module.exports.SOCKET_URL = module.exports.SERVER_URL,
 
 module.exports.EVENTS = {
