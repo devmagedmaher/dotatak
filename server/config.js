@@ -7,7 +7,7 @@ module.exports.DEFAULT = {
     MAX_PLAYERS: 5,
   },
   GAME: {
-    TIMEOUT_TO_CHANGE_MODE_AFTER_KILLED: 9000, // 9 seconds,
+    TIMEOUT_TO_SWITCH_MODE_AFTER_KILLED: 9000, // 9 seconds,
     TIMEOUT_TO_RESPAWN_AFTER_KILLED: 10000, // 10 seconds,
   }
 }

@@ -8,7 +8,7 @@ module.exports = class Player {
     angle = 0,
     mode = 0,
     score = 0,
-    alive = false,
+    alive = true,
     isAdmin = false
   }) {
     this.socket = socket

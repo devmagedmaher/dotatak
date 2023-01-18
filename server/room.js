@@ -13,111 +13,137 @@ module.exports = class Room {
     this.roomIO = roomIO
   }
 
+  /**
+   * Join new player to the room
+   * 
+   */
   join(name, socket) {
+    // if user is new to the room create one
     if (!this.getPlayer(name)) {
       this.players[name] = new Player(socket, { name })
     }
+    // else: update socket instance and connectivity
     else {
-      this.players[name].socket = socket
-      this.players[name].isConnected = true
+      this.updatePlayerState(name, {
+        socket,
+        isConnected: true
+      })
     }
 
+    // anyway, if he is first to connect, make him admin
     if (this.getConnectedPlayers() === 1) {
-      this.players[name].isAdmin = true
+      this.updatePlayerState(name, { isAdmin: true })
     }
     
+    // join socket to the room
     socket.join(this.name)
   }
 
+  /**
+   * Leave existing player from the room
+   * 
+   */
   leave(name) {
     if (this.getPlayer(name)) {
-      this.players[name].isConnected = false;
+      // change turn off player
+      this.updatePlayerState(name, { isConnected: false })
+
+      // if leavin player was an admin
       if (this.getPlayer(name).isAdmin) {
-        this.players[name].isAdmin = false
-        this.setRandomAdmin()
+        // revoke his admin
+        this.updatePlayerState(name, { isAdmin: false })
+        // get new player in the room to be an admin
+        return this.setRandomAdmin()
       }
     }
+
+    return null
   }
 
-  startGame(connectedOnly = true) {
-    for (let p in this.players) {
-      const player = this.players[p]
-      if (connectedOnly && !player.isConnected) {
-        continue
-      }
-      player.alive = true;
-    }
-
-    this.isPlaying = true;
-    this.isStarting = false;
-
-    this.broadcast('update-players-state', this.getPlayers(true))
-  }
-
+  /**
+   * Get all players data
+   * 
+   */
   getPlayers(connectedOnly = false) {
     const players = {}
+
+    // loop all players
     for (let name in this.players) {
+      // get each player data
       const player = this.getPlayer(name)
+      // get connected only players in case flag is true
       if (connectedOnly && !player.isConnected) {
         continue
       }
+
+      // store player data
       players[name] = player
     }
+
     return players
   }
 
+  /**
+   * Get single player data
+   * 
+   */
   getPlayer(name) {
     if (this.players[name]) {
       const { socket, ...player } = this.players[name]
       return player
     }
+
     return null
   }
 
+  /**
+   * Update player data
+   * 
+   */
+  updatePlayerState(name, data) {
+    if (this.getPlayer(name)) {
+      for (let key in data) {
+        if (data[key] !== undefined) {
+          this.players[name][key] = data[key]
+        }
+      }
+    }
+
+    return this.getPlayer(name)
+  }
+
+  /**
+   * Get number of connectd players
+   * 
+   */
   getConnectedPlayers() {
     return Object.values(this.players).filter(p => p.isConnected).length;
   }
 
-  updatePlayerPosition(name, { x, y, angle }) {
-    if (this.players[name]) {
-      this.players[name].x = x
-      this.players[name].y = y
-      this.players[name].angle = angle
-    }
-    return this.getPlayer(name)
-  }
-
-  addPlayerScore(name, score) {
-    if (this.getPlayer(name)) {
-      this.players[name].score += score
-    }
-    return this.getPlayer(name)
-  }
-
-  killPlayer(name) {
-    if (room.getPlayer(name)) {
-      room.players[name].alive = false
-    }
-    return this.getPlayer(name)
-  }
-
-  respawnPlayer(name) {
-    if (room.getPlayer(name)) {
-      room.players[name].alive = true
-    }
-    return this.getPlayer(name)
-  }
-
+  /**
+   * Set first connected player as admin
+   * 
+   */
   setRandomAdmin() {
+    // if there are any connected players
     if (this.getConnectedPlayers() > 0) {
-      const firstPlayer = Object.values(this.players).find(p => p.isConnected)
-      if (firstPlayer) {
-        firstPlayer.isAdmin = true
-        this.broadcast('set-new-admin', firstPlayer.name)
+      // get first connected player
+      const newAdmin = Object.values(this.players).find(p => p.isConnected)
+      if (newAdmin) {
+        // make the player an admin
+        this.updatePlayerState(newAdmin.name, { isAdmin: true })
+        // return admin name
+        return newAdmin.name
       }
     }
+
+    return null
   }
 
+  /**
+   * Get room data
+   * 
+   */
   getInfo() {
     const { io, roomIO, players, ...room } = this
     return {
@@ -126,6 +152,10 @@ module.exports = class Room {
     }
   }
 
+  /**
+   * Broadcase to room sockets
+   * 
+   */
   broadcast(...args) {
     this.roomIO.to(this.name).emit(...args)
   }

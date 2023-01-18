@@ -101,13 +101,15 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   updateState(data) {
-    const { x, y, angle, mode, alive } = data
-    this.x = x !== undefined ? x : this.x;
-    this.y = y !== undefined ? y : this.y;
-    this.angle = angle !== undefined ? angle : this.angle;
-    this.mode = mode !== undefined ? mode : this.mode;
-    this.alive = alive !== undefined ? alive : this.alive;
-    this.refreshTexture()
+    for (let key in data) {
+      if (data[key] !== undefined) {
+        this[key] = data[key]
+
+        if (key === 'mode') {
+          this.refreshTexture()
+        }
+      }
+    }
   }
 
   refreshTexture() {

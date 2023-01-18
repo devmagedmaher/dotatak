@@ -62,10 +62,18 @@ module.exports = io => {
       //   }
       // })
 
+      // Listen to change of player mode
+      socket.on(EVENTS.SOCKET.PLAYER.MODE_CHANGED, (mode) => {
+        // upate player position
+        room.updatePlayerState(name, { mode})
+        // send player position to room
+        room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_MODE, name, mode)
+      })
+
       // Listen to change of player position
       socket.on(EVENTS.SOCKET.PLAYER.POSITION_CHANGED, (x, y, angle) => {
         // upate player position
-        room.updatePlayerPosition(name, { x, y, angle })
+        room.updatePlayerState(name, { x, y, angle })
         // send player position to room
         room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_POISITION, name, x, y, angle)
       })
@@ -74,31 +82,31 @@ module.exports = io => {
       socket.on(EVENTS.SOCKET.PLAYER.COLLIDED, (winner, loser) => {
         if (room.getPlayer(winner) && room.getPlayer(loser)?.alive) {
           // kill player who lost
-          room.killPlayer(loser)
+          room.updatePlayerState(loser, { alive: false })
           // send killed player name to room
           room.broadcast(EVENTS.SOCKET.PLAYER.KILL, loser)
-          
+
           // add score to player who won
-          room.addPlayerScore(winner, 1)
+          room.updatePlayerState(winner, { score: room.getPlayer(winner).score + 1})
           // send new score of player who won
-          room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_SCORE, name, room.getPlayer(name).score)
+          room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_SCORE, winner, room.getPlayer(winner).score)
 
           // wait for timeout to change loser's mode
           setTimeout(
             () => {
               // send change mode command to loser
-              room.getPlayer(loser).socket.emit(EVENTS.SOCKET.PLAYER.CHANGE_MODE)
+              room.players[loser].socket.emit(EVENTS.SOCKET.PLAYER.SWITCH_MODE)
             },
-            DEFAULT.GAME.TIMEOUT_TO_CHANGE_MODE_AFTER_KILLED
+            DEFAULT.GAME.TIMEOUT_TO_SWITCH_MODE_AFTER_KILLED
           )
-        
+
           // wait for timeout to respawn loser
           setTimeout(
             () => {
               // respawn player who lost
-              room.respawnPlayer()
+              room.updatePlayerState(loser, { alive: true })
               // send respawned player name to room
-              room.broadcast('', loser)
+              room.broadcast(EVENTS.SOCKET.PLAYER.RESPAWN, loser)
             },
             DEFAULT.GAME.TIMEOUT_TO_RESPAWN_AFTER_KILLED
           )
@@ -109,9 +117,13 @@ module.exports = io => {
       socket.on(EVENTS.SOCKET.ROOM.DISCONNECT, () => {
         console.log('A player has disconnected!', name, room_name);
         // leave player the room
-        room.leave(name)
+        const newAdmin = room.leave(name)
         // send player to remove from room
         room.broadcast(EVENTS.SOCKET.PLAYER.REMOVE, name)
+        // send new admin if player left was admin
+        if (newAdmin) {
+          room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_ADMIN, newAdmin)
+        }
       });
     }
     catch (e) {

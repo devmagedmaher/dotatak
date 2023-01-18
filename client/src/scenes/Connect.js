@@ -51,11 +51,13 @@ export default class Connect extends Phaser.Scene {
     })
   }
 
-  init() {
+  init(data) {
     // get player name
     this.myName = localStorage.getItem('_name')
     // get room if exists
     this.room = getRoomNameFromURL()
+    // get error message
+    this.errorMessage = data.errorMessage
   }
 
   preload() {
@@ -72,6 +74,11 @@ export default class Connect extends Phaser.Scene {
       this.cameras.main.midPoint.x,
       this.cameras.main.midPoint.y,
     )
+
+    if (this.errorMessage) {
+      this.title.setText(this.errorMessage)
+      return
+    }
 
     this.connectIO()
     .then(() => {

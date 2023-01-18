@@ -149,6 +149,8 @@ export default class InGameScene extends Phaser.Scene {
     this.collidable = this.add.group()
     // add hero (in random position)
     this.hero = new DotHero(this);
+    // emit hero mode to other players
+    this.emitMode(this.hero.mode)
     // add existing other players
     this.setAllPlayers()
     // add other players to collidable group
@@ -249,17 +251,18 @@ export default class InGameScene extends Phaser.Scene {
    */
    listenToSocketIOEvents() {
     this.socket.on(EVENTS.SOCKET.ROOM.DISCONNECT, this.onDisconnect.bind(this))
+    this.socket.on(EVENTS.SOCKET.ROOM.ERROR, this.onError.bind(this))
     this.socket.on(EVENTS.SOCKET.PONG, this.onPong.bind(this))
 
     // this.socket.on('count-down', this.onCountDown.bind(this))
-    // this.socket.on('set-new-admin', this.onSetNewAdmin.bind(this))
-    // this.socket.on('change-mode', this.onChangeMode.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.CHANGE_ADMIN, this.onChangeAdmin.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.SWITCH_MODE, this.onSwitchMode.bind(this))
 
     this.socket.on(EVENTS.SOCKET.PLAYER.ADD, this.onAddPlayer.bind(this))
     this.socket.on(EVENTS.SOCKET.PLAYER.REMOVE, this.onRemovePlayer.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.CHANGE_MODE, this.onChangePlayerMode.bind(this))
     this.socket.on(EVENTS.SOCKET.PLAYER.CHANGE_POISITION, this.onChangePlayerPosition.bind(this))
-    // this.socket.on('change-player-score', this.onChangePlayerScore.bind(this))
-    // this.socket.on('update-players-state', this.onChangePlayerState.bind(this))
+    this.socket.on(EVENTS.SOCKET.PLAYER.CHANGE_SCORE, this.onChangePlayerScore.bind(this))
     this.socket.on(EVENTS.SOCKET.PLAYER.KILL, this.onKillPlayer.bind(this))
     this.socket.on(EVENTS.SOCKET.PLAYER.RESPAWN, this.onRespawnPlayer.bind(this))
   }
@@ -270,6 +273,10 @@ export default class InGameScene extends Phaser.Scene {
 
   onDisconnect() {
     this.scene.start('ConnectScene')
+  }
+
+  onError(errorMessage) {
+    this.scene.start('ConnectScene', { errorMessage })
   }
 
   onCountDown(counter) {
@@ -295,42 +302,36 @@ export default class InGameScene extends Phaser.Scene {
     }
   }
 
-  onChangePlayerPosition(name, x, y, angle) {
-    const player = this.players[name]
+  onChangePlayerMode(name, mode) {
     // if player exists
-    if (player) {
+    if (this.players[name]) {
       // update player position
-      player.updateState({ x, y, angle })
+      this.players[name].updateState({ mode })
     }
   }
 
-  onChangePlayerState(players) {
-    // update state of all players
-    for (let p in players) {
-      const player = this.players[p]
-      // if player exists
-      if (player) {
-        // update player state
-        player.updateState(players[p])
-      }
+  onChangePlayerPosition(name, x, y, angle) {
+    // if player exists
+    if (this.players[name]) {
+      // update player position
+      this.players[name].updateState({ x, y, angle })
     }
   }
 
   onChangePlayerScore(name, score) {
-    const player = this.players[name]
+    console.log('onChangePlayerScore', name, score)
     // if player exists
-    if (player) {
+    if (this.players[name]) {
       // update player score
-      player.score = score
+      this.players[name].updateState({ score })
     }
   }
 
   onKillPlayer(name) {
-    const player = this.players[name]
     // if player exists
-    if (player) {
+    if (this.players[name]) {
       // kill player
-      player.alive = false;
+      this.players[name].updateState({ alive: false });
 
       // if player is self
       if (this.myName === name) {
@@ -341,25 +342,26 @@ export default class InGameScene extends Phaser.Scene {
   }
 
   onRespawnPlayer(name) {
-    const player = this.players[name]
     // if player exists
-    if (player) {
+    if (this.players[name]) {
       // resurrect player
-      player.alive = true;
+      this.players[name].updateState({ alive: true });
     }
   }
 
-  onSetNewAdmin(name) {
+  onSwitchMode() {
+    // set hero to random mode
+    this.hero.goRandomMode()
+    // emit new mode
+    this.emitMode(this.hero.mode)
+  }
+
+  onChangeAdmin(name) {
     // if player exists
     if (this.players[name]) {
       // set player to admin
-      this.players[name].isAdmin = true;
+      this.players[name].updateState({ isAdmin: true });
     }
-  }
-
-  onChangeMode() {
-    // set hero to random mode
-    this.hero.goRandomMode()
   }
 
 
@@ -377,9 +379,20 @@ export default class InGameScene extends Phaser.Scene {
    * 
    */
   emitCollision(winner, loser) {
-    this.socket.emit(EVENTS.SOCKET.PLAYERS.COLLIDED,
+    this.socket.emit(EVENTS.SOCKET.PLAYER.COLLIDED,
       winner,
       loser
+    )
+  }
+
+  /**
+   * Send new mode of the player
+   * 
+   */
+  emitMode() {
+    this.socket.emit(
+      EVENTS.SOCKET.PLAYER.MODE_CHANGED,
+      this.hero.mode
     )
   }
 
@@ -393,6 +406,5 @@ export default class InGameScene extends Phaser.Scene {
       Math.round(this.hero.y),
       Math.round(this.hero.angle)
     )
-    
   }
 }
