@@ -41,11 +41,10 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 		// - keyboard inputs
 		this.cursors = this.input.keyboard.createCursorKeys();
 		// - mouse inputs
-		this.input.on('pointerdown', this.onMouseClick.bind(this));
-		document.addEventListener('pointerlockchange', this.releaseMouseControl.bind(this));
+		this.mouse = this.input.mousePointer
 		// - touch inputs
 		this.input.addPointer(1) // add extra pointer
-		this.touch1 = this.input.pointer1
+		this.touch = this.input.pointer1
 		this.touch2 = this.input.pointer2
 
 		// follow sprite
@@ -64,7 +63,7 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 	}
 
 	goRandomPosition() {
-		this.setAngle(Phaser.Math.Between(0, 360))
+		this.setAngle(Phaser.Math.Angle.RandomDegrees())
 		this.setRandomPosition(0, 0, this.scene.map.size, this.scene.map.size)
 	}
 
@@ -76,15 +75,16 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 	}
 
 	goRight() {
-		this.angularVelocity = this.angularSpeed * -1;
+		this.angularVelocity = this.angularSpeed;
 	}
 	goLeft() {
-		this.angularVelocity = this.angularSpeed;
+		this.angularVelocity = this.angularSpeed * -1;
 	}
 
 	update() {
 		this.keyboardInputs()
 		this.touchInputs()
+		this.mouseInputs()
 
 		this.applyDashFriction()
 		this.applyAngularFriction()
@@ -92,8 +92,8 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 		// update alive/dead display
 		this.setAlpha(this.player.alive ? 1 : 0.4)
 
-		// update angular velocity		
-		this.angle += this.angularVelocity
+		// update angular velocity
+		this.setAngle(this.angle + this.angularVelocity)
 		// update linear velocity
 		this.setVelocityX(Math.cos(Phaser.Math.DegToRad(this.angle)) * (this.linearSpeed + this.dash));
 		this.setVelocityY(Math.sin(Phaser.Math.DegToRad(this.angle)) * (this.linearSpeed + this.dash));
@@ -119,34 +119,98 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 	}
 
 	keyboardInputs() {
-		// rotate hero left and right
+		// left key down
 		if (this.cursors.left.isDown) {
-			this.goRight()
-		}
-		else if (this.cursors.right.isDown) {
 			this.goLeft()
 		}
-		// dash hero forward
+		// right key down
+		else if (this.cursors.right.isDown) {
+			this.goRight()
+		}
+		// up key down
 		if (this.cursors.up.isDown) {
 			this.goDash()
 		}
 	}
 
 	touchInputs() {
-		// mobile control
-		if (this.touch2.isDown) {
-			this.goDash()
-		}
-		else if (this.touch1.isDown) {
-			// first third
-			if (this.touch1.x < this.scene.scale.width / 3) {
-				this.goRight()
+		// touch is down
+		if (this.touch.isDown) {
+			const onLeftSide = this.isPointrOnLeftSide(this.touch)
+			if (onLeftSide !== null) {
+				// in case of left side
+				if (onLeftSide) {
+					this.goLeft()
+				}
+				// in case of right side
+				else {
+					this.goRight()
+				}
 			}
-			// last third
-			if (this.touch1.x > this.scene.scale.width / 3 * 2) {
-				this.goLeft()
+			// on second touch tap
+			if (this.touch2.isDown) {
+				this.goDash()
 			}
 		}
+	}
+
+	mouseInputs() {
+		// mouse is inside game canvas
+		if (this.input.isOver && this.mouse.camera) {
+			const onLeftSide = this.isPointrOnLeftSide(this.mouse)
+			if (onLeftSide !== null) {
+				// in case of left side
+				if (onLeftSide) {
+					this.goLeft()
+				}
+				// in case of right side
+				else {
+					this.goRight()
+				}
+			}
+			// on mouse click
+			if (this.mouse.isDown) {
+				this.goDash()
+			}
+		}
+	}
+
+	isPointrOnLeftSide(pointer) {
+		// get normalized angle between this hero and pointer
+		const angleToPointer = Phaser.Math.Angle.Normalize(Phaser.Math.Angle.Between(
+			this.x - this.scene.mainCamera.scrollX,
+			this.y - this.scene.mainCamera.scrollY,
+			pointer.x,
+			pointer.y
+		))
+		// get normalized angle of this hero
+		const angleHero = Phaser.Math.Angle.Normalize(this.rotation)
+		// get angle difference
+		const angleDiff = angleToPointer - angleHero
+		// check if angle differenc is not significant to fix and round
+		if (Math.abs(angleDiff) < Phaser.Math.DegToRad(this.angularSpeed + 1)) {
+			if (angleDiff === 0) {
+				return null
+			}
+			this.setRotation(angleToPointer)
+			return null
+		} 
+		// get which side the mouse is from this hero
+		/**
+		 * 1) diff > 0 => d0
+		 * 2) abs(diff) > Math.PI => dpi
+		 * IF d>0 & d>pi 		<= Left
+		 * IF !d>0 & d>pi 	=> Right
+		 * IF d>0 & !d>pi 	=> Right
+		 * IF !d>0 & !d>pi 	<= Left
+		 */
+		const onLeftSide = (
+			(angleDiff > 0 && Math.abs(angleDiff) > Math.PI)
+			||
+			(angleDiff < 0 && Math.abs(angleDiff) < Math.PI)
+		)
+
+		return onLeftSide
 	}
 
 	onMouseClick() {

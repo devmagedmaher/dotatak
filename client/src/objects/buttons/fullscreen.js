@@ -5,20 +5,7 @@ export default class FullscreenButton extends Button {
     super(scene, x, y, text, options)
 
     this.keyF = scene.input.keyboard.addKey('F')
-    this.keyF.on('up', this.onKeyFUp, this)
-  }
-
-  openFullscreen() {
-    if (!this.scene.scale.isFullscreen) {
-      this.scene.scale.startFullscreen();
-      if (window.screen) {
-        window.screen.orientation.lock('landscape').catch(e => console.error(e));
-      }
-    }
-  }
-
-  onKeyFUp() {
-    this.openFullscreen()
+    this.keyF.on('up', this.onClick, this)
   }
 
   onClick() {
@@ -27,5 +14,15 @@ export default class FullscreenButton extends Button {
 
   update() {
     this.group.setVisible(!this.scene.scale.isFullscreen)
+  }
+
+
+  openFullscreen() {
+    if (!this.scene.scale.isFullscreen) {
+      this.scene.scale.startFullscreen();
+      if (window.screen) {
+        window.screen.orientation.lock('landscape').catch(e => console.error(e));
+      }
+    }
   }
 }
