@@ -159,7 +159,8 @@ export default class InGameScene extends Phaser.Scene {
     this.physics.add.overlap(
       this.hero.player,
       this.collidable,
-      this.onCollision.bind(this))
+      this.onCollision.bind(this)
+    )
   }
 
   /**

@@ -20,8 +20,6 @@ export default class InfoText extends Text {
         + `[${['rock', 'paper', 'scissors'][player.mode]}] `
         + `\n\n`
         + `ping: ${this.scene.ping || 0}ms`
-        + `\n\n`
-        + `dash charge: ${100 - Math.ceil(hero.dash / (hero.dashPower - hero.linearSpeed) * 100)}%`
       )
     }
   }
