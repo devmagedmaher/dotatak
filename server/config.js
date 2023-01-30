@@ -4,7 +4,7 @@ const baseConfig = require('../config')
 
 module.exports.DEFAULT = {
   ROOM: {
-    MAX_PLAYERS: 5,
+    MAX_PLAYERS: 12,
   },
   GAME: {
     TIMEOUT_TO_SWITCH_MODE_AFTER_KILLED: 9000, // 9 seconds,

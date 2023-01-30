@@ -18,10 +18,13 @@ const config = merge(baseConfig, {
   },
 
   EVENTS: {
-    SOCKET: {
-      TEST_EVENT_BLAKJDF: 'test-vente-sdfkjsdf'
+    HERO: {
+      DASH: 'dash',
+      DASH_ENDED: 'dash-ended',
     }
   },
+
+  GAME: {},
 
   STORAGE: {
     NAME: '_name'
@@ -36,6 +39,7 @@ const {
   SOCKET_WORKSPACES,
   TEXTURES,
   EVENTS,
+  GAME,
   STORAGE,
   PING_INTERVAL_TIME,
 } = config
@@ -45,6 +49,7 @@ export {
   SOCKET_WORKSPACES,
   TEXTURES,
   EVENTS,
+  GAME,
   STORAGE,
   PING_INTERVAL_TIME,
 }

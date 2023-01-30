@@ -1,43 +1,43 @@
-import { TEXTURES } from "../../config";
+import { EVENTS, GAME, TEXTURES } from "../../config";
 
 export default class DotHero extends Phaser.Physics.Arcade.Image {
-	constructor(scene) {
-		super(scene, 0, 0, TEXTURES.HERO, 0)
+	constructor(scene, { name, x = 0, y = 0, mode = 0, angle = 0, score = 0, alive = false, tint = 0xffffff}, isControlled = true) {
+		super(scene, x, y, TEXTURES.HERO, mode)
+		console.log('DotHero', { mode })
 		scene.add.existing(this)
 		scene.physics.add.existing(this)
 
 		// static props
+		this.isControlled = isControlled
+		this.name = name
 		this.size = 50;
 		this.angularSpeed = 4;
 		this.angularFriction = 0.77;
 		this.linearSpeed = 0;
 		this.dashPower = 2000;
-		this.dashCharge = 200;
+		this.dashCharge = 100;
 		this.dashFriction = 0.88;
-		this.modes = [
-			0, // rock
-			1, // paper
-			2, // scissors
-		]
+		this.modes = GAME.PLAYER.MODES
 
 		// state
-		this.mode = 0
-    this.alive = true
+		this.mode = mode
+    this.alive = alive
+		this.score = score;
 		this.angularVelocity = 0;
 		this.isDashing = 0;
-		this.score = 0;
-		this.mouseLock = false;
 
 		// set physics
 		this.setDamping(true)
 		this.setDrag(0.02)
 		// upate sprite
 		this.setCollideWorldBounds(true);
-		this.setBounce(1, 1)
-		this.setDisplaySize(this.size, this.size);
+		this.setBounce(0.5, 0.5)
 		this.setCircle(this.width / 2);
-		this.goRandomMode()
-		this.goRandomPosition()
+		this.setAngle(angle)
+		console.log(tint)
+		this.setTint(tint)
+		// this.goRandomMode()
+		// this.goRandomPosition()
 
 		// create bars
 		this.createDashBar()		
@@ -46,40 +46,45 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 		this.scene = scene;
 		this.input = scene.input;
 		// handle control inputs
-		// - keyboard inputs
-		this.cursors = this.input.keyboard.createCursorKeys();
-		// - mouse inputs
-		this.mouse = this.input.mousePointer
-		// - touch inputs
-		this.input.addPointer(1) // add extra pointer
-		this.touch = this.input.pointer1
-		this.touch2 = this.input.pointer2
-
 		// follow sprite
-		scene.mainCamera.startFollow(this, false, 0.5, 0.5);
-		scene.minimapCamera.startFollow(this, false, 0.2, 0.2);
+		if (this.isControlled) {
+			// - keyboard inputs
+			this.cursors = this.input.keyboard.createCursorKeys();
+			// - mouse inputs
+			this.mouse = this.input.mousePointer
+			// - touch inputs
+			this.input.addPointer(1) // add extra pointer
+			this.touch = this.input.pointer1
+			this.touch2 = this.input.pointer2
+	
+			scene.mainCamera.startFollow(this, false, 0.5, 0.5);
+			scene.minimapCamera.startFollow(this, false, 0.2, 0.2);
+		}
 	}
 
 	update() {
-		this.keyboardInputs()
-		this.touchInputs()
-		this.mouseInputs()
+		if (this.isControlled) {
+			// input controls
+			this.keyboardInputs()
+			this.touchInputs()
+			this.mouseInputs()
+			// update angular velocity
+			this.setAngle(this.angle + this.angularVelocity)			
+			// add friction to angular veloctity
+			this.applyAngularFriction()
+			// update bars
+			this.updateDashBar()
+		}
 
-		this.recharge()
-		this.applyAngularFriction()
+		// recharge dash bar
+		this.rechargeDash()
 
 		// update alive/dead display
-		this.setAlpha(this.player.alive ? 1 : 0.4)
-
-		// update angular velocity
-		this.setAngle(this.angle + this.angularVelocity)
-		
-		// update bars
-		this.updateDashBar()
+		this.setAlpha(this.alive ? 1 : 0.4)
 	}
 
 	createDashBar() {
-		this.dashBar = this.scene.add.rectangle(0, 0, 100, 4, 0xbb0000, 0.7)
+		this.dashBar = this.scene.add.rectangle(0, 0, 100, 4, this.tint, 0.7)
 		this.dashBar.setOrigin(0.5, 0.5)
 	}
 
@@ -100,6 +105,9 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 
 	goDash() {
 		if (this.isDashing === 0) {
+			if (this.isControlled) {
+				this.emit(EVENTS.HERO.DASH)
+			}
 			this.isDashing = this.dashCharge;
 			this.setVelocity(
 				Math.cos(this.rotation) * (this.dashPower),
@@ -115,11 +123,12 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 		this.angularVelocity = this.angularSpeed * -1;
 	}
 
-	recharge() {
+	rechargeDash() {
 		if (this.isDashing > 0) {
 			this.isDashing--
 			if (this.isDashing < 0) {
 				this.isDashing = 0
+				// this.emit(EVENTS.HERO.DASH_ENDED)
 			}
 		}
 	}
@@ -228,42 +237,16 @@ export default class DotHero extends Phaser.Physics.Arcade.Image {
 		return onLeftSide
 	}
 
-	onMouseClick() {
-		if (!this.mouseLock) {
-			this.input.mouse.requestPointerLock();
-			return
-		}
-		
-		this.goDash()
-	}
+  updateState(data) {
+    for (let key in data) {
+      if (data[key] !== undefined) {
+        this[key] = data[key]
 
-	onMouseMove({ movementX }) {
-		if (this.mouseLock) {
-			if (movementX > 0) {
-				this.angularVelocity = this.angularSpeed
-			}
-			else if (movementX < 0) {
-				this.angularVelocity = this.angularSpeed * -1
-			}
-		}
-	}
-
-	lockMouse() {
-		this.mouseLock = true
-		this.input.on('pointermove', this.onMouseMove.bind(this))
-	}
-
-	releaseMouseLock() {
-		this.input.off('pointermove', this.onMouseMove.bind(this))
-		this.mouseLock = false
-	}
-
-	releaseMouseControl() {
-		if (document.pointerLockElement === null) {
-			this.releaseMouseLock()
-		}
-		else {
-			this.lockMouse()
-		}
-	}
+        if (key === 'mode') {
+          console.log(this.name, data)
+					this.setFrame(this.mode)
+        }
+      }
+    }
+  }
 }

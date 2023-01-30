@@ -37,11 +37,11 @@ module.exports = io => {
 
       // join player to room
       room.join(name, socket)
+      // send inital data to player
+      socket.emit(EVENTS.SOCKET.ROOM.INIT, room.getPlayer(name), room.getPlayers(true, name))
+
       // send player data to room
       room.broadcast(EVENTS.SOCKET.PLAYER.ADD, room.getPlayer(name))
-
-      // send inital data to player
-      socket.emit(EVENTS.SOCKET.ROOM.INIT, room.getPlayers(true))
       
       // socket.on('game-starting', () => {
       //   if (!room.isPlaying && !room.isStarting) {
@@ -76,6 +76,14 @@ module.exports = io => {
         room.updatePlayerState(name, { x, y, angle })
         // send player position to room
         room.broadcast(EVENTS.SOCKET.PLAYER.CHANGE_POISITION, name, x, y, angle)
+      })
+
+      // Listen to player dashes
+      socket.on(EVENTS.SOCKET.PLAYER.DASHED, (angle) => {
+        // upate player position
+        room.updatePlayerState(name, { angle })
+        // send player dash angle to room
+        room.broadcast(EVENTS.SOCKET.PLAYER.DASH, name, angle)
       })
 
       // Listen to collision of two players

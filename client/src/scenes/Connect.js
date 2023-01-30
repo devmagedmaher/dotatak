@@ -10,11 +10,12 @@ export default class Connect extends Phaser.Scene {
     super({ key: 'ConnectScene' });
   }
 
-  enterRoom(players) {
+  enterRoom() {
     // go to InGame scene
     this.scene.start('InGameScene', {
       myName: this.myName,
       room: this.room,
+      init_player: this.player,
       init_players: this.players,
       socket: this.socket,
     })
@@ -35,7 +36,8 @@ export default class Connect extends Phaser.Scene {
         this.socket = io(SOCKET_WORKSPACES.ROOM, { query: { name: this.myName, room: this.room } })  
 
         // on init = no erros
-        this.socket.on(EVENTS.SOCKET.ROOM.INIT, players => {
+        this.socket.on(EVENTS.SOCKET.ROOM.INIT, (player, players) => {
+          this.player = player
           this.players = players
           resolve()
         })
@@ -76,6 +78,7 @@ export default class Connect extends Phaser.Scene {
     )
 
     if (this.errorMessage) {
+      console.error(this.errorMessage)
       this.title.setText(this.errorMessage)
       return
     }
@@ -85,6 +88,7 @@ export default class Connect extends Phaser.Scene {
       this.enterRoom()
     })
     .catch(e => {
+      console.error(e)
       this.title.setText(e?.toString() || 'Something went wrong!')
     })
   }

@@ -1,31 +1,22 @@
 import { TEXTURES } from "../../config";
+import DotHero from "./dot";
 
-export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
+export default class DotHeroStatic extends DotHero {
   constructor(scene, { name, x = 0, y = 0, mode = 0, score = 0, alive = false, isAdmin = false } = {}) {
-    super(scene, x, y, TEXTURES.HERO, mode)
-		scene.add.existing(this)
-		scene.physics.add.existing(this)
+    super(scene, { x, y, mode }, false)
+    console.log('constructor', name, {mode})
     this.components = scene.add.group()
 
     // static props
     this.name = name;
     const [fname, lname] = this.name.split('-')
     this.name_label = `${fname}\n${lname}`
-		this.size = 50;
-		this.modes = [
-			0, // rock
-			1, // paper
-			2, // scissors
-		]
 
     // state
     this.isAdmin = isAdmin;
 		this.mode = mode;
     this.alive = alive;
     this.score = score;
-
-    // update sprite
-    this.updateSize(this.size)
 
     // hide self player for self
     if (scene.myName === name) {
@@ -44,11 +35,6 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
 
     // set scene
     this.scene = scene
-  }
-
-  updateSize(size) {
-    this.setDisplaySize(size, size);
-		this.setCircle(this.width / 2);
   }
 
   addNameText() {
@@ -90,8 +76,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
   }
 
   update() {
-    // update alpha
-    this.setAlpha(this.alive ? 1 : 0.4)
+    super.update()
 
     // score text follow sprite
     this.updateNameText()
@@ -106,6 +91,7 @@ export default class DotHeroStatic extends Phaser.Physics.Arcade.Image {
         this[key] = data[key]
 
         if (key === 'mode') {
+          console.log(this.name, data)
           this.refreshTexture()
         }
       }

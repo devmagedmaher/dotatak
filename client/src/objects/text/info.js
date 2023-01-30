@@ -8,18 +8,20 @@ export default class InfoText extends Text {
   }
 
   update() {
-    if (this.scene.hero?.player) {
+    if (this.scene.hero) {
       const hero = this.scene.hero
-      const player = hero.player
+      // const player = hero.player
       this.setText(
         `${this.scene.room}`
-        + `- ${player.isAdmin ? '($) ' : ''}`
-        + `${player.name}: `
-        + `${player?.score||0} `
-        + `(${player.alive ? 'alive' : 'dead'}) `
-        + `[${['rock', 'paper', 'scissors'][player.mode]}] `
+        + `- ${hero.isAdmin ? '($) ' : ''}`
+        + `${this.scene.myName}: `
+        + `${hero.score||0} `
+        + `(${hero.alive ? 'alive' : 'dead'}) `
+        + `[${['rock', 'paper', 'scissors'][hero.mode]}] `
         + `\n\n`
         + `ping: ${this.scene.ping || 0}ms`
+        + `\n\n`
+        + `DEBUG: ${hero.body.speed}`
       )
     }
   }

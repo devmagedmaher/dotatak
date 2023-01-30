@@ -1,3 +1,4 @@
+const { GAME } = require("../config");
 const Player = require("./player")
 
 
@@ -8,6 +9,7 @@ module.exports = class Room {
     this.isPlaying = false;
     this.isStarting = false;
     this.players = {}
+    this.availableTints = [...GAME.PLAYER.TINTS]
 
     this.io = io
     this.roomIO = roomIO
@@ -20,7 +22,8 @@ module.exports = class Room {
   join(name, socket) {
     // if user is new to the room create one
     if (!this.getPlayer(name)) {
-      this.players[name] = new Player(socket, { name })
+      const tint = this.availableTints.shift()
+      this.players[name] = new Player(socket, { name, tint })
     }
     // else: update socket instance and connectivity
     else {
@@ -64,7 +67,7 @@ module.exports = class Room {
    * Get all players data
    * 
    */
-  getPlayers(connectedOnly = false) {
+  getPlayers(connectedOnly = false, filteredPlayer) {
     const players = {}
 
     // loop all players
@@ -72,7 +75,7 @@ module.exports = class Room {
       // get each player data
       const player = this.getPlayer(name)
       // get connected only players in case flag is true
-      if (connectedOnly && !player.isConnected) {
+      if ((connectedOnly && !player.isConnected) || (filteredPlayer === name)) {
         continue
       }
 
